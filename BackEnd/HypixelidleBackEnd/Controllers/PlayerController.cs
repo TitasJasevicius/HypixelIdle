@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Controllers;
 
 namespace HypixelidleBackEnd.Controllers
 {
@@ -11,11 +12,14 @@ namespace HypixelidleBackEnd.Controllers
     {
         private readonly HypixelIdleContext _context;
         private readonly HashingService _hashingService;
+        private readonly InventoryController _inventoryController;
 
-        public PlayerController(HypixelIdleContext context, HashingService hashingService)
+
+        public PlayerController(HypixelIdleContext context, HashingService hashingService, InventoryController inventoryController)
         {
             _context = context;
             _hashingService = hashingService;
+            _inventoryController = inventoryController;
         }
 
         [HttpGet]
@@ -45,7 +49,69 @@ namespace HypixelidleBackEnd.Controllers
             _context.Players.Add(player);
             await _context.SaveChangesAsync();
 
+            if (player.IdPlayer == 0)
+            {
+                return BadRequest("Player ID not generated");
+            }
+
+            //This should create the initial inventory, but for now we create only slot for testing purposes
+            await _inventoryController.CreateInventorySlot(player);
+
             return CreatedAtAction(nameof(GetPlayer), new { username = player.Username }, player);
+        }
+
+        [HttpDelete]
+        [Route("DeletePlayer")]
+        public async Task<ActionResult> DeletePlayer(int playerId)
+        {
+            var player = await _context.Players.FindAsync(playerId);
+
+            if (player == null)
+            {
+                return NotFound();
+            }
+
+            _context.Players.Remove(player);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpPut]
+        [Route("UpdatePlayer")]
+        public async Task<ActionResult> UpdatePlayer(int playerId, Player updatedPlayer)
+        {
+            if (playerId != updatedPlayer.IdPlayer)
+            {
+                return BadRequest();
+            }
+
+            var player = await _context.Players.FindAsync(playerId);
+
+            if (player == null)
+            {
+                return NotFound();
+            }
+
+            player.Username = updatedPlayer.Username;
+            player.Email = updatedPlayer.Email;
+            player.SkyblockLevel = updatedPlayer.SkyblockLevel;
+            player.CurrentXp = updatedPlayer.CurrentXp;
+            player.EnchantingLvl = updatedPlayer.EnchantingLvl;
+            player.GardenXp = updatedPlayer.GardenXp;
+
+            _context.Entry(player).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+               throw;
+            }
+
+            return NoContent();
         }
 
 

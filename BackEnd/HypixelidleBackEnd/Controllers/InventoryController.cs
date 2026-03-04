@@ -33,12 +33,19 @@ namespace HypixelidleBackEnd.Controllers
         //Pretty much useless, only used to test in the initial phase of dev
         [HttpPost]
         [Route("CreateInventorySlot")]
-        public async Task<ActionResult<Playerinventoryslot>> CreateInventorySlot(Playerinventoryslot slot)
+        public async Task<ActionResult<Playerinventoryslot>> CreateInventorySlot(Player player)
         {
-            _context.Playerinventoryslots.Add(slot);
+            var newSlot = new Playerinventoryslot
+            {
+                SlotIndex = 0,
+                Quantity = 0,
+                FkPlayeridPlayer = player.IdPlayer
+            };
+            
+            _context.Playerinventoryslots.Add(newSlot);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetInventorySlots), new { playerId = slot.FkPlayeridPlayer }, slot);
+            return CreatedAtAction(nameof(GetInventorySlots), new { playerId = newSlot.FkPlayeridPlayer }, newSlot);
         }
 
         [HttpPost]
@@ -59,7 +66,7 @@ namespace HypixelidleBackEnd.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok();
+            return CreatedAtAction(nameof(GetInventorySlots), new { playerId = playerId }, null);
         }
 
     }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,9 +33,12 @@ builder.Services.AddSwaggerGen();
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
-//Services
-
+//Builder services
 builder.Services.AddScoped<HashingService>();
+
+//Builder controllers
+builder.Services.AddScoped<InventoryController>();
+
 
 var app = builder.Build();
 

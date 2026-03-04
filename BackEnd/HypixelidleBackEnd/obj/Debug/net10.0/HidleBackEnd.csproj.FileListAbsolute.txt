@@ -122,3 +122,4 @@ C:\Users\Tito\source\repos\HypixelIdle\backend\hypixelidlebackend\obj\Debug\net1
 C:\Users\Tito\source\repos\HypixelIdle\backend\hypixelidlebackend\obj\Debug\net10.0\HidleBackEnd.pdb
 C:\Users\Tito\source\repos\HypixelIdle\backend\hypixelidlebackend\obj\Debug\net10.0\HidleBackEnd.genruntimeconfig.cache
 C:\Users\Tito\source\repos\HypixelIdle\backend\hypixelidlebackend\obj\Debug\net10.0\ref\HidleBackEnd.dll
+C:\Users\Tito\source\repos\HypixelIdle\backend\hypixelidlebackend\obj\Debug\net10.0\HidleBackEnd.sourcelink.json

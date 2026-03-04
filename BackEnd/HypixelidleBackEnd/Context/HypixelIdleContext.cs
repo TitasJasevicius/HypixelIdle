@@ -695,7 +695,7 @@ public partial class HypixelIdleContext : DbContext
             entity.ToTable("player");
 
             entity.Property(e => e.IdPlayer)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnType("int(11)")
                 .HasColumnName("id_Player");
             entity.Property(e => e.CurrentXp)
@@ -963,7 +963,7 @@ public partial class HypixelIdleContext : DbContext
             entity.HasIndex(e => e.FkPlayeridPlayer, "fk_Playerid_Player");
 
             entity.Property(e => e.IdPlayerInventorySlots)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnType("int(11)")
                 .HasColumnName("id_PlayerInventorySlots");
             entity.Property(e => e.FkPlayeridPlayer)

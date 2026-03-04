@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace HypixelidleBackEnd.Models;
 
@@ -13,6 +14,7 @@ public partial class Playerinventoryslot
 
     public int FkPlayeridPlayer { get; set; }
 
+    [JsonIgnore]
     public virtual Player FkPlayeridPlayerNavigation { get; set; } = null!;
 
     public virtual Iteminstance? Iteminstance { get; set; }
