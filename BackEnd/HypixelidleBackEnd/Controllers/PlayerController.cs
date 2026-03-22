@@ -1,13 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
-using HypixelidleBackEnd.Controllers;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PlayerController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -41,6 +42,7 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("CreatePlayer")]
+        [AllowAnonymous]
         public async Task<ActionResult<Player>> CreatePlayer(Player player)
         {
             string password = _hashingService.HashPassword(player.Password);

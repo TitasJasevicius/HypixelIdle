@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
 
@@ -7,6 +8,7 @@ namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class InventoryController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
