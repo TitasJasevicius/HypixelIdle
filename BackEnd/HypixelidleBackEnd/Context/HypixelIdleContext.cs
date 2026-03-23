@@ -960,6 +960,8 @@ public partial class HypixelIdleContext : DbContext
 
             entity.ToTable("playerinventoryslots");
 
+            entity.HasIndex(e => e.FkItemidItem, "fk_Itemid_Item");
+
             entity.HasIndex(e => e.FkPlayeridPlayer, "fk_Playerid_Player");
 
             entity.Property(e => e.IdPlayerInventorySlots)
@@ -969,6 +971,9 @@ public partial class HypixelIdleContext : DbContext
             entity.Property(e => e.FkPlayeridPlayer)
                 .HasColumnType("int(11)")
                 .HasColumnName("fk_Playerid_Player");
+            entity.Property(e => e.FkItemidItem)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Itemid_Item");
             entity.Property(e => e.Quantity)
                 .HasColumnType("int(11)")
                 .HasColumnName("quantity");
@@ -980,6 +985,10 @@ public partial class HypixelIdleContext : DbContext
                 .HasForeignKey(d => d.FkPlayeridPlayer)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("playerinventoryslots_ibfk_1");
+
+            entity.HasOne(d => d.FkItemidItemNavigation).WithMany(p => p.Playerinventoryslots)
+                .HasForeignKey(d => d.FkItemidItem)
+                .HasConstraintName("playerinventoryslots_ibfk_item");
         });
 
         modelBuilder.Entity<Playersack>(entity =>
@@ -1400,7 +1409,7 @@ public partial class HypixelIdleContext : DbContext
                 .HasColumnType("int(11)")
                 .HasColumnName("category");
             entity.Property(e => e.Description)
-                .HasMaxLength(100)
+                .HasMaxLength(256)
                 .HasColumnName("description");
             entity.Property(e => e.FkStatsidStats)
                 .HasColumnType("int(11)")
@@ -1412,7 +1421,7 @@ public partial class HypixelIdleContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("name");
             entity.Property(e => e.PassiveAbility)
-                .HasMaxLength(100)
+                .HasMaxLength(256)
                 .HasColumnName("passiveAbility");
 
             entity.HasOne(d => d.CategoryNavigation).WithMany(p => p.Skills)
@@ -1472,7 +1481,7 @@ public partial class HypixelIdleContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("category");
             entity.Property(e => e.Effect)
-                .HasMaxLength(100)
+                .HasMaxLength(256)
                 .HasColumnName("effect");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)

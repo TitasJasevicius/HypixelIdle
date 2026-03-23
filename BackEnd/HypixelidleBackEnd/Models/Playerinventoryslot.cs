@@ -10,9 +10,13 @@ public partial class Playerinventoryslot
 
     public int Quantity { get; set; }
 
+    public int? FkItemidItem { get; set; }
+
     public int IdPlayerInventorySlots { get; set; }
 
     public int FkPlayeridPlayer { get; set; }
+
+    public virtual Item? FkItemidItemNavigation { get; set; }
 
     [JsonIgnore]
     public virtual Player FkPlayeridPlayerNavigation { get; set; } = null!;

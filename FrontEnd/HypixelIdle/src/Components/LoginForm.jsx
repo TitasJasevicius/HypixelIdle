@@ -1,7 +1,44 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+const decodeJwtPayload = (token) => {
+    try {
+        const tokenParts = token.split('.');
+
+        if (tokenParts.length < 2) {
+            return null;
+        }
+
+        const base64Url = tokenParts[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+        const decodedPayload = atob(paddedBase64);
+
+        return JSON.parse(decodedPayload);
+    } catch {
+        return null;
+    }
+};
+
+const getPlayerIdFromAccessToken = (accessToken) => {
+    const payload = decodeJwtPayload(accessToken);
+
+    if (!payload) {
+        return null;
+    }
+
+    // Supports .NET NameIdentifier plus common JWT aliases.
+    return (
+        payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
+        ?? payload.nameid
+        ?? payload.sub
+        ?? null
+    );
+};
 
 const LoginForm = ({ onToggle, classPrefix = 'auth' }) => {
+    const navigate = useNavigate();
     const [loginForm, setLoginForm] = useState({
         username: '',
         password: ''
@@ -34,15 +71,32 @@ const LoginForm = ({ onToggle, classPrefix = 'auth' }) => {
         }
 
         try {
-            const response = await axios.post('http://localhost:5091/api/player/Login', {
+            const response = await axios.post('http://localhost:5091/api/auth/Login', {
                 username: loginForm.username,
                 password: loginForm.password
             });
 
             if (response.status === 200) {
+                const accessToken = response.data?.accessToken ?? response.data?.AccessToken;
+                const accessTokenExpiresAtUtc = response.data?.accessTokenExpiresAtUtc ?? response.data?.AccessTokenExpiresAtUtc;
+
+                if (!accessToken || !accessTokenExpiresAtUtc) {
+                    alert("Login response is missing token data.");
+                    return;
+                }
+
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('accessTokenExpiresAtUtc', accessTokenExpiresAtUtc);
+
+                const playerId = getPlayerIdFromAccessToken(accessToken);
+                if (playerId) {
+                    localStorage.setItem('playerId', String(playerId));
+                }
+
+                window.dispatchEvent(new Event('auth-changed'));
+
                 alert("Login successful!");
-                // navigate to home/game page
-                // navigate('/home');
+                navigate('/');
             }
         } catch (error) {
             console.error("Error during login:", error);

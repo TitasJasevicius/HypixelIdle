@@ -33,7 +33,7 @@ public partial class Iteminstance
 
     public virtual Accessorybagslot? FkAccessoryBagSlotsidAccessoryBagSlotsNavigation { get; set; }
 
-    public virtual Item FkItemidItemNavigation { get; set; } = null!;
+    public virtual Item? FkItemidItemNavigation { get; set; } = null!;
 
     public virtual Playerequipment? FkPlayerEquipmentidPlayerEquipmentNavigation { get; set; }
 

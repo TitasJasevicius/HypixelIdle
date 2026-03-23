@@ -6,6 +6,8 @@ using HypixelidleBackEnd.Services;
 
 namespace HypixelidleBackEnd.Controllers
 {
+    
+
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
@@ -19,6 +21,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        //update auth later
+        [AllowAnonymous]
         [Route("GetInventory")]
         public async Task<ActionResult<Playerinventoryslot>> GetInventorySlots(int playerId)
         {
@@ -34,6 +38,8 @@ namespace HypixelidleBackEnd.Controllers
 
         //Pretty much useless, only used to test in the initial phase of dev
         [HttpPost]
+        //update auth later
+        [AllowAnonymous]
         [Route("CreateInventorySlot")]
         public async Task<ActionResult<Playerinventoryslot>> CreateInventorySlot(Player player)
         {
@@ -51,6 +57,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
+        //update auth later
+        [AllowAnonymous]
         [Route("CreateInitialInventory")]
         public async Task<ActionResult> CreateInitialInventory(int playerId)
         {
@@ -69,6 +77,96 @@ namespace HypixelidleBackEnd.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetInventorySlots), new { playerId = playerId }, null);
+        }
+
+        [HttpPost]
+        //update auth later
+        [AllowAnonymous]
+        [Route("AddItemToInventory")]
+        public async Task<ActionResult> AddItemToInventory([FromBody] AddItemToInventoryRequest request)
+        {
+            if (request.PlayerId <= 0 || request.ItemId <= 0 || request.Quantity <= 0)
+            {
+                return BadRequest("PlayerId, ItemId and Quantity must be greater than zero.");
+            }
+
+            var item = await _context.Items.FirstOrDefaultAsync(i => i.IdItem == request.ItemId);
+            if (item == null)
+            {
+                return NotFound("Item not found.");
+            }
+
+            var inventorySlots = await _context.Playerinventoryslots
+                .Include(slot => slot.Iteminstance)
+                .Where(slot => slot.FkPlayeridPlayer == request.PlayerId)
+                .OrderBy(slot => slot.SlotIndex)
+                .ToListAsync();
+
+            if (inventorySlots.Count == 0)
+            {
+                return NotFound("Inventory not found for player.");
+            }
+
+            var maxStackSize = item.Stackable ? Math.Max(1, item.StackValue) : 1;
+            var remainingQuantity = request.Quantity;
+
+            foreach (var slot in inventorySlots.Where(slot =>
+                         slot.FkItemidItem == request.ItemId
+                         && slot.Iteminstance == null
+                         && slot.Quantity < maxStackSize))
+            {
+                var freeSpace = maxStackSize - slot.Quantity;
+                var toAdd = Math.Min(remainingQuantity, freeSpace);
+
+                slot.Quantity += toAdd;
+                remainingQuantity -= toAdd;
+
+                if (remainingQuantity == 0)
+                {
+                    break;
+                }
+            }
+
+            if (remainingQuantity > 0)
+            {
+                foreach (var slot in inventorySlots.Where(slot =>
+                             slot.FkItemidItem == null
+                             && slot.Iteminstance == null
+                             && slot.Quantity <= 0))
+                {
+                    var toAdd = Math.Min(remainingQuantity, maxStackSize);
+
+                    slot.FkItemidItem = request.ItemId;
+                    slot.Quantity = toAdd;
+
+                    remainingQuantity -= toAdd;
+
+                    if (remainingQuantity == 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (remainingQuantity > 0)
+            {
+                return Conflict($"Inventory is full. Could not add {remainingQuantity} item(s).");
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        //Helper methods / dto
+
+        public sealed class AddItemToInventoryRequest
+        {
+            public int PlayerId { get; set; }
+
+            public int ItemId { get; set; }
+
+            public int Quantity { get; set; } = 1;
         }
 
     }

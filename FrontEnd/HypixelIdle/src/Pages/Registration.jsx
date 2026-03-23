@@ -4,7 +4,7 @@ import '../Styles/GlobalStyles.css';
 
 const Registration = () => {
     /*const handleToggle = () => {
-        // Navigate to login or handle toggle if needed
+        // do something later
         console.log("Toggle to login");
     }; */
 

@@ -5,6 +5,7 @@ using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Primitives;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -51,10 +52,19 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Optional admin bypass key for protected endpoints"
     });
 
+    // Add as separate requirement objects so either Bearer OR AdminKey can authorize requests.
     options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecuritySchemeReference("Bearer", null, null),
+            new List<string>()
+        }
+    });
+
+    options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecuritySchemeReference("AdminKey", null, null),
             new List<string>()
         }
     });
@@ -77,9 +87,22 @@ builder.Services
     .AddPolicyScheme("DynamicAuth", "JWT or Admin Key", options =>
     {
         options.ForwardDefaultSelector = context =>
-            context.Request.Headers.ContainsKey(AdminKeyAuthenticationHandler.AdminKeyHeaderName)
-                ? AdminKeyAuthenticationHandler.SchemeName
-                : JwtBearerDefaults.AuthenticationScheme;
+        {
+            if (context.Request.Headers.TryGetValue("Authorization", out StringValues authorization)
+                && !StringValues.IsNullOrEmpty(authorization)
+                && authorization.Any(value => !string.IsNullOrWhiteSpace(value) && value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)))
+            {
+                return JwtBearerDefaults.AuthenticationScheme;
+            }
+
+            if (context.Request.Headers.TryGetValue(AdminKeyAuthenticationHandler.AdminKeyHeaderName, out var adminKey)
+                && !string.IsNullOrWhiteSpace(adminKey))
+            {
+                return AdminKeyAuthenticationHandler.SchemeName;
+            }
+
+            return JwtBearerDefaults.AuthenticationScheme;
+        };
     })
     .AddJwtBearer(options =>
     {

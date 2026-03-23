@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import LoginForm from './LoginForm';
 import RegistrationForm from './RegistrationForm';
 import '../Styles/AuthStyles.css'; 
 import '../Styles/GlobalStyles.css';
 
-const Auth = () => {
-    const [isLogin, setIsLogin] = useState(false);
+const Auth = ({ initialMode = 'register' }) => {
+    const [isLogin, setIsLogin] = useState(initialMode === 'login');
+
+    useEffect(() => {
+        setIsLogin(initialMode === 'login');
+    }, [initialMode]);
 
     const toggleForm = () => {
         setIsLogin(!isLogin);

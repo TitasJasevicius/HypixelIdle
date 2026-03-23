@@ -41,7 +41,7 @@ const RegistrationForm = ({ onToggle, classPrefix = 'auth' }) => {
 
             if (response.status === 201) {
                 alert("Registration successful!");
-                onToggle(); // Switch to login after successful registration
+                onToggle(); 
             }
         } catch (error) {
             console.error("Error during registration:", error);

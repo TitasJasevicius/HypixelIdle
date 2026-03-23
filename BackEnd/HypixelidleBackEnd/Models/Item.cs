@@ -21,7 +21,7 @@ public partial class Item
 
     public int IdItem { get; set; }
 
-    public int FkCollectionidCollection { get; set; }
+    public int? FkCollectionidCollection { get; set; }
 
     public virtual Collectiontier? Collectiontier { get; set; }
 
@@ -30,6 +30,8 @@ public partial class Item
     public virtual Collection FkCollectionidCollectionNavigation { get; set; } = null!;
 
     public virtual ICollection<Iteminstance> Iteminstances { get; set; } = new List<Iteminstance>();
+
+    public virtual ICollection<Playerinventoryslot> Playerinventoryslots { get; set; } = new List<Playerinventoryslot>();
 
     public virtual ICollection<Mobdroptable> Mobdroptables { get; set; } = new List<Mobdroptable>();
 

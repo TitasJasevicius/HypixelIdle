@@ -1,0 +1,96 @@
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+
+const SidebarItem = ({ item, level, expandedNodes, onToggle }) => {
+    const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+    const isExpanded = expandedNodes.has(item.id);
+
+    return (
+        <li className="sidebar-item" data-level={level}>
+            <div className="sidebar-row" style={{ '--level': level }}>
+                {hasChildren ? (
+                    <button
+                        type="button"
+                        className="caret-button"
+                        aria-label={isExpanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                        aria-expanded={isExpanded}
+                        onClick={() => onToggle(item.id)}
+                    >
+                        <span className={`caret ${isExpanded ? 'caret-open' : ''}`} />
+                    </button>
+                ) : (
+                    <span className="caret-placeholder" />
+                )}
+
+                {item.to ? (
+                    <Link className="menu-link" to={item.to}>
+                        {item.label}
+                    </Link>
+                ) : (
+                    <button type="button" className="menu-link">
+                        {item.label}
+                    </button>
+                )}
+            </div>
+
+            {hasChildren && isExpanded ? (
+                <ul className="sidebar-list nested-list">
+                    {item.children.map((childItem) => (
+                        <SidebarItem
+                            key={childItem.id}
+                            item={childItem}
+                            level={level + 1}
+                            expandedNodes={expandedNodes}
+                            onToggle={onToggle}
+                        />
+                    ))}
+                </ul>
+            ) : null}
+        </li>
+    );
+};
+
+const SidebarMenu = ({ title, menuItems }) => {
+    const [expandedNodes, setExpandedNodes] = useState(new Set());
+
+    const toggleNode = (nodeId) => {
+        setExpandedNodes((currentExpandedNodes) => {
+            const nextExpandedNodes = new Set(currentExpandedNodes);
+
+            if (nextExpandedNodes.has(nodeId)) {
+                nextExpandedNodes.delete(nodeId);
+            } else {
+                nextExpandedNodes.add(nodeId);
+            }
+
+            return nextExpandedNodes;
+        });
+    };
+
+    const totalRootItems = useMemo(() => menuItems.length, [menuItems]);
+
+    return (
+        <aside className="home-sidebar" aria-label="Main navigation">
+            <header className="sidebar-header">
+                <h1>{title}</h1>
+                <p>{totalRootItems} core sections</p>
+            </header>
+
+            <nav>
+                <ul className="sidebar-list root-list">
+                    {menuItems.map((rootItem) => (
+                        <SidebarItem
+                            key={rootItem.id}
+                            item={rootItem}
+                            level={0}
+                            expandedNodes={expandedNodes}
+                            onToggle={toggleNode}
+                        />
+                    ))}
+                </ul>
+            </nav>
+        </aside>
+    );
+};
+
+export default SidebarMenu;
