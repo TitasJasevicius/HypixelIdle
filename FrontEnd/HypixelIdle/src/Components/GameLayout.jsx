@@ -91,6 +91,7 @@ const GameLayout = () => {
                 children: [
                     { id: 'training-combat', label: 'Test Combat' },
                     { id: 'training-foraging', label: 'Test Foraging' },
+                    { id: 'training-skin-render', label: 'Skin Render Test', to: '/skin-render' },
                 ],
             },
             {

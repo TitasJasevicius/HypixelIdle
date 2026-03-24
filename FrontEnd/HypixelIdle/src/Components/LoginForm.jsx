@@ -87,6 +87,7 @@ const LoginForm = ({ onToggle, classPrefix = 'auth' }) => {
 
                 localStorage.setItem('accessToken', accessToken);
                 localStorage.setItem('accessTokenExpiresAtUtc', accessTokenExpiresAtUtc);
+                localStorage.setItem('username', loginForm.username);
 
                 const playerId = getPlayerIdFromAccessToken(accessToken);
                 if (playerId) {

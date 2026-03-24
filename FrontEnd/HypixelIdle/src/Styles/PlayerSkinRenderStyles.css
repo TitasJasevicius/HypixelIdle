@@ -1,0 +1,120 @@
+.player-skin-render-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.player-skin-render-header h1 {
+  margin: 0;
+  color: #dbe9f6;
+}
+
+.player-skin-render-header p {
+  margin: 0.35rem 0 0;
+  color: #9cb8d1;
+}
+
+.player-skin-render-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.55rem;
+}
+
+.player-skin-render-form label {
+  width: 100%;
+  font-size: 0.9rem;
+  color: #b6cbe0;
+}
+
+.player-skin-render-form input {
+  min-width: 15rem;
+  flex: 1;
+  border: 1px solid rgba(175, 204, 228, 0.35);
+  background: rgba(10, 24, 35, 0.55);
+  color: #eaf2fc;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.player-skin-render-form button {
+  border: 1px solid rgba(123, 185, 228, 0.55);
+  background: linear-gradient(180deg, #265a7a 0%, #1b425b 100%);
+  color: #eaf6ff;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.player-skin-render-card {
+  display: grid;
+  grid-template-columns: minmax(16rem, 26rem) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.player-skin-render-canvas-wrap {
+  position: relative;
+  min-height: 30rem;
+  height: 30rem;
+  border: 1px solid rgba(175, 204, 228, 0.35);
+  border-radius: 0.85rem;
+  background: radial-gradient(circle at 30% 18%, #1b3446 0%, #0e1d28 45%, #0a141b 100%);
+  opacity: 0;
+  transform: translateX(12px) scale(0.98);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.player-skin-render-canvas-wrap[data-loading='false'] {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.player-skin-render-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.player-skin-render-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 16, 24, 0.62);
+  color: #c4dbef;
+  font-weight: 600;
+}
+
+.player-skin-render-meta {
+  border: 1px solid rgba(175, 204, 228, 0.28);
+  border-radius: 0.8rem;
+  background: rgba(10, 24, 35, 0.5);
+  padding: 0.9rem;
+  color: #d8e8f5;
+}
+
+.player-skin-render-meta p {
+  margin: 0.25rem 0;
+}
+
+.player-skin-render-error {
+  color: #ffb6b6;
+}
+
+.player-skin-render-fallback {
+  margin-top: 0.7rem;
+  max-height: 18rem;
+  width: auto;
+  image-rendering: pixelated;
+}
+
+@media (max-width: 900px) {
+  .player-skin-render-card {
+    grid-template-columns: 1fr;
+  }
+
+  .player-skin-render-canvas-wrap {
+    min-height: 24rem;
+    height: 24rem;
+  }
+}

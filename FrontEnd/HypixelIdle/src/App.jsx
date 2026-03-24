@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState } from 'react';
 import Auth from './Components/Auth';
 import GameLayout from './Components/GameLayout';
+import PlayerSkinRender from './Components/PlayerSkinRender';
 import Home from './Pages/Home';
 import Mining from './Pages/Mining';
 
@@ -50,6 +51,7 @@ function App() {
         >
           <Route index element={<Home />} />
           <Route path="mining" element={<Mining />} />
+          <Route path="skin-render" element={<PlayerSkinRender />} />
         </Route>
         <Route
           path="*"
