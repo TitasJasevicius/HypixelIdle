@@ -89,16 +89,16 @@ const GameLayout = () => {
                 id: 'training',
                 label: 'Training',
                 children: [
-                    { id: 'training-combat', label: 'Combat Drills' },
-                    { id: 'training-foraging', label: 'Foraging Route' },
+                    { id: 'training-combat', label: 'Test Combat' },
+                    { id: 'training-foraging', label: 'Test Foraging' },
                 ],
             },
             {
                 id: 'bank',
                 label: 'Bank',
                 children: [
-                    { id: 'bank-purse', label: 'Purse' },
-                    { id: 'bank-storage', label: 'Storage' },
+                    { id: 'bank-purse', label: 'Test Purse' },
+                    { id: 'bank-storage', label: 'Test Storage' },
                 ],
             },
         ],

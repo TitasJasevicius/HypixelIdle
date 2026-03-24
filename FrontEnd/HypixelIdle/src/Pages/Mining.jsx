@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import MiningBlock from '../Components/MiningBlock';
+import Inventory from '../Components/Inventory';
 import '../Styles/GlobalStyles.css';
 import '../Styles/MiningStyles.css';
 
@@ -44,6 +45,7 @@ const Mining = () => {
 	const [itemError, setItemError] = useState('');
 	const [dropError, setDropError] = useState('');
 	const [isSavingDrop, setIsSavingDrop] = useState(false);
+	const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
 
 	const playerId = useMemo(() => {
 		const storedPlayerId = localStorage.getItem('playerId');
@@ -133,6 +135,7 @@ const Mining = () => {
 			});
 
 			setCobblestone((prev) => prev + 1);
+			setInventoryRefreshTick((prev) => prev + 1);
 			return true;
 		} catch (error) {
 			console.error('Failed to add mined item to inventory:', error);
@@ -188,6 +191,8 @@ const Mining = () => {
 						<p>{minedBlocks}</p>
 					</article>
 				</section>
+
+				<Inventory playerId={playerId} refreshKey={inventoryRefreshTick} />
 		</section>
 	);
 };

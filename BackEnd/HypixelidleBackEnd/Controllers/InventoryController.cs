@@ -24,9 +24,23 @@ namespace HypixelidleBackEnd.Controllers
         //update auth later
         [AllowAnonymous]
         [Route("GetInventory")]
-        public async Task<ActionResult<Playerinventoryslot>> GetInventorySlots(int playerId)
+        public async Task<ActionResult<IEnumerable<InventorySlotResponse>>> GetInventorySlots(int playerId)
         {
-            var inventorySlots = await _context.Playerinventoryslots.Where(i => i.FkPlayeridPlayer == playerId).ToListAsync();
+            var inventorySlots = await _context.Playerinventoryslots
+                .AsNoTracking()
+                .Where(i => i.FkPlayeridPlayer == playerId)
+                .Include(i => i.FkItemidItemNavigation)
+                .OrderBy(i => i.SlotIndex)
+                .Select(i => new InventorySlotResponse
+                {
+                    IdPlayerInventorySlots = i.IdPlayerInventorySlots,
+                    SlotIndex = i.SlotIndex,
+                    Quantity = i.Quantity,
+                    FkItemidItem = i.FkItemidItem,
+                    ItemName = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.Name : null,
+                    ItemIcon = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.Icon : null
+                })
+                .ToListAsync();
 
             if (inventorySlots == null)
             {
@@ -167,6 +181,21 @@ namespace HypixelidleBackEnd.Controllers
             public int ItemId { get; set; }
 
             public int Quantity { get; set; } = 1;
+        }
+
+        public sealed class InventorySlotResponse
+        {
+            public int IdPlayerInventorySlots { get; set; }
+
+            public int SlotIndex { get; set; }
+
+            public int Quantity { get; set; }
+
+            public int? FkItemidItem { get; set; }
+
+            public string? ItemName { get; set; }
+
+            public string? ItemIcon { get; set; }
         }
 
     }

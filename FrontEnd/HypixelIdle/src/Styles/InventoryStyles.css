@@ -1,0 +1,124 @@
+.inventory-panel {
+  --inventory-slot-size: 3.35rem;
+  --inventory-item-inset: 0.16rem;
+  margin-top: 1.4rem;
+  padding: 0.95rem;
+  border: 1px solid rgba(175, 204, 228, 0.35);
+  border-radius: 0.8rem;
+  background: rgba(10, 24, 35, 0.7);
+}
+
+.inventory-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #dbe9f6;
+}
+
+.inventory-header p {
+  margin: 0.25rem 0 0;
+  color: #9cb8d1;
+  font-size: 0.9rem;
+}
+
+.inventory-main-grid,
+.inventory-hotbar {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.inventory-main-grid {
+  margin-top: 0.8rem;
+}
+
+.inventory-hotbar {
+  margin-top: 0.7rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(175, 204, 228, 0.3);
+}
+
+.inventory-slot {
+  height: var(--inventory-slot-size);
+  min-height: var(--inventory-slot-size);
+  width: 100%;
+  border: 1px solid rgba(174, 198, 217, 0.45);
+  border-radius: 0.35rem;
+  background: linear-gradient(180deg, #314251 0%, #273845 100%);
+  color: #eaf2fc;
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  padding: 0.15rem;
+  line-height: 1;
+  appearance: none;
+  font-family: var(--main-text-font);
+  overflow: hidden;
+  transition: none;
+  animation: none;
+}
+
+.inventory-slot:disabled {
+  cursor: not-allowed;
+}
+
+.inventory-slot-item-image {
+  width: calc(100% - (var(--inventory-item-inset) * 2));
+  height: calc(100% - (var(--inventory-item-inset) * 2));
+  margin: var(--inventory-item-inset);
+  object-fit: contain;
+  object-position: center;
+  image-rendering: pixelated;
+  display: block;
+  transform: none;
+  transition: none;
+  animation: none;
+}
+
+.inventory-slot-item-label {
+  position: absolute;
+  top: 0.12rem;
+  left: 0.2rem;
+  font-size: 0.6rem;
+  color: #b5c9dd;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.inventory-slot-quantity {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f2fcff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+.inventory-slot-locked {
+  border-color: rgba(168, 122, 122, 0.65);
+  background: linear-gradient(180deg, #3a2a2a 0%, #2b1e1e 100%);
+}
+
+.inventory-slot-locked::after {
+  content: 'x';
+  position: absolute;
+  top: 0.15rem;
+  right: 0.2rem;
+  color: rgba(255, 199, 199, 0.78);
+  font-weight: 700;
+  font-size: 0.62rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.inventory-slot-active {
+  border-color: #8dd7ff;
+  box-shadow: 0 0 0 2px rgba(141, 215, 255, 0.2) inset;
+}
+
+@media (max-width: 700px) {
+  .inventory-panel {
+    --inventory-slot-size: 2.8rem;
+  }
+}
