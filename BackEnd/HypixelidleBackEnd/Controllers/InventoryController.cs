@@ -76,7 +76,7 @@ namespace HypixelidleBackEnd.Controllers
         [Route("CreateInitialInventory")]
         public async Task<ActionResult> CreateInitialInventory(int playerId)
         {
-            for (int i = 0; i < 27; i++)
+            for (int i = 0; i < 36; i++)
             {
                 var inventorySlot = new Playerinventoryslot
                 {

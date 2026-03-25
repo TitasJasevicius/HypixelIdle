@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import MiningBlock from '../Components/MiningBlock';
 import Inventory from '../Components/Inventory';
+import PlayerCollection from '../Components/PlayerCollection';
 import '../Styles/GlobalStyles.css';
 import '../Styles/MiningStyles.css';
 
@@ -39,7 +40,6 @@ const resolveIconPath = (iconPath) => {
 const Mining = () => {
 	const [blockHealth, setBlockHealth] = useState(MAX_BLOCK_HEALTH);
 	const [cobblestone, setCobblestone] = useState(0);
-	const [minedBlocks, setMinedBlocks] = useState(0);
 	const [cobblestoneItem, setCobblestoneItem] = useState(null);
 	const [isLoadingItem, setIsLoadingItem] = useState(true);
 	const [itemError, setItemError] = useState('');
@@ -89,6 +89,11 @@ const Mining = () => {
 		() => cobblestoneItem?.name ?? cobblestoneItem?.Name ?? 'Cobblestone',
 		[cobblestoneItem]
 	);
+
+	const collectionId = useMemo(() => {
+		const id = cobblestoneItem?.fkCollectionidCollection ?? cobblestoneItem?.FkCollectionidCollection;
+		return typeof id === 'number' ? id : null;
+	}, [cobblestoneItem]);
 
 	const cobblestoneTextureStyle = useMemo(() => {
 		const iconPath = cobblestoneItem?.icon ?? cobblestoneItem?.Icon;
@@ -157,7 +162,6 @@ const Mining = () => {
 		}
 
 		setBlockHealth(MAX_BLOCK_HEALTH);
-		setMinedBlocks((prev) => prev + 1);
 		await addMinedItemToInventory();
 	};
 
@@ -183,13 +187,15 @@ const Mining = () => {
 
 				<section className="mining-stats" aria-label="Mining stats">
 					<article>
-						<h2>{itemName}</h2>
+						<h2>{itemName} Mined This Session</h2>
 						<p>{cobblestone}</p>
 					</article>
-					<article>
-						<h2>Blocks Mined</h2>
-						<p>{minedBlocks}</p>
-					</article>
+					<PlayerCollection
+						playerId={playerId}
+						itemName={itemName}
+						collectionId={collectionId}
+						progressTick={inventoryRefreshTick}
+					/>
 				</section>
 
 				<Inventory playerId={playerId} refreshKey={inventoryRefreshTick} />
