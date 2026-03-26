@@ -86,6 +86,13 @@ const GameLayout = () => {
                 children: skillsChildren,
             },
             {
+                id: 'gameplay',
+                label: 'Gameplay',
+                children: [
+                    { id: 'gameplay-crafting', label: 'Crafting Table', to: '/crafting' },
+                ],
+            },
+            {
                 id: 'training',
                 label: 'Training',
                 children: [

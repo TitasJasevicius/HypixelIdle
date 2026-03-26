@@ -172,9 +172,74 @@ namespace HypixelidleBackEnd.Controllers
             return Ok();
         }
 
+        [HttpPost]
+        //update auth later
+        [AllowAnonymous]
+        [Route("RemoveItemFromInventory")]
+        public async Task<ActionResult> RemoveItemFromInventory([FromBody] RemoveItemFromInventoryRequest request)
+        {
+            if (request.PlayerId <= 0 || request.ItemId <= 0 || request.Quantity <= 0)
+            {
+                return BadRequest("PlayerId, ItemId and Quantity must be greater than zero.");
+            }
+
+            var item = await _context.Items.FirstOrDefaultAsync(i => i.IdItem == request.ItemId);
+            if (item == null)
+            {
+                return NotFound("Item not found.");
+            }
+
+            var inventorySlots = await _context.Playerinventoryslots
+                .Where(slot => slot.FkPlayeridPlayer == request.PlayerId && slot.FkItemidItem == request.ItemId)
+                .OrderBy(slot => slot.SlotIndex)
+                .ToListAsync();
+
+            if (inventorySlots.Count == 0)
+            {
+                return NotFound("Item not found in inventory.");
+            }
+
+            var remainingQuantity = request.Quantity;
+
+            foreach (var slot in inventorySlots)
+            {
+                if (remainingQuantity <= 0)
+                {
+                    break;
+                }
+
+                var toRemove = Math.Min(remainingQuantity, slot.Quantity);
+                slot.Quantity -= toRemove;
+                remainingQuantity -= toRemove;
+
+                if (slot.Quantity <= 0)
+                {
+                    slot.FkItemidItem = null;
+                }
+            }
+
+            if (remainingQuantity > 0)
+            {
+                return Conflict($"Inventory does not have enough items. Missing {remainingQuantity} item(s).");
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
         //Helper methods / dto
 
         public sealed class AddItemToInventoryRequest
+        {
+            public int PlayerId { get; set; }
+
+            public int ItemId { get; set; }
+
+            public int Quantity { get; set; } = 1;
+        }
+
+        public sealed class RemoveItemFromInventoryRequest
         {
             public int PlayerId { get; set; }
 
