@@ -1,10 +1,24 @@
+/// <reference types="vite/client" />
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import '../Styles/InventoryStyles.css';
 
 const HOTBAR_SLOTS = 9;
 const TOTAL_SLOTS = 36;
-const DEFAULT_ITEM_ICON = '/assets/blocks/cobblestone_texture.png';
+
+const BLOCK_TEXTURES = import.meta.glob('../Assets/Blocks/*.{png,jpg,jpeg,webp,gif,svg}', {
+	eager: true,
+	import: 'default',
+});
+
+const BLOCK_TEXTURE_BY_FILE = Object.fromEntries(
+	Object.entries(BLOCK_TEXTURES).map(([modulePath, assetUrl]) => [
+		modulePath.split('/').pop().toLowerCase(),
+		assetUrl,
+	])
+);
+
+const DEFAULT_ITEM_ICON = BLOCK_TEXTURE_BY_FILE['cobblestone_texture.png'] ?? '';
 
 const getAuthHeaders = () => {
 	const accessToken = localStorage.getItem('accessToken');
@@ -38,10 +52,19 @@ const resolveIconPath = (iconPath) => {
 		return trimmedPath;
 	}
 
-	const hasFileExtension = /\.(png|jpe?g|webp|gif|svg)$/i.test(trimmedPath);
-	const normalizedPath = trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
+	const lowerPath = trimmedPath
+		.replaceAll('\\', '/')
+		.replace(/^\/+/, '')
+		.toLowerCase();
 
-	return hasFileExtension ? normalizedPath : `${normalizedPath}.png`;
+	const pathWithoutPrefix = lowerPath
+		.replace(/^src\/assets\/blocks\//, '')
+		.replace(/^assets\/blocks\//, '');
+
+	const hasFileExtension = /\.(png|jpe?g|webp|gif|svg)$/i.test(pathWithoutPrefix);
+	const fileName = (hasFileExtension ? pathWithoutPrefix : `${pathWithoutPrefix}.png`).split('/').pop();
+
+	return fileName ? (BLOCK_TEXTURE_BY_FILE[fileName] ?? '') : '';
 };
 
 const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
