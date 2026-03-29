@@ -35,6 +35,10 @@ public partial class Item
 
     public virtual ICollection<Mobdroptable> Mobdroptables { get; set; } = new List<Mobdroptable>();
 
+    public virtual ICollection<Node> NodeFkNodeitemidItemNavigations { get; set; } = new List<Node>();
+
+    public virtual ICollection<Node> NodeFkOutputitemidItemNavigations { get; set; } = new List<Node>();
+
     public virtual ICollection<Playersackitem> Playersackitems { get; set; } = new List<Playersackitem>();
 
     public virtual Rarity RarityNavigation { get; set; } = null!;

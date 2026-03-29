@@ -6,11 +6,13 @@ import '../Styles/InventoryStyles.css';
 const HOTBAR_SLOTS = 9;
 const TOTAL_SLOTS = 36;
 
+/** @type {Record<string, string>} */
 const BLOCK_TEXTURES = import.meta.glob('../Assets/Blocks/*.{png,jpg,jpeg,webp,gif,svg}', {
 	eager: true,
 	import: 'default',
 });
 
+/** @type {Record<string, string>} */
 const BLOCK_TEXTURE_BY_FILE = Object.fromEntries(
 	Object.entries(BLOCK_TEXTURES).map(([modulePath, assetUrl]) => [
 		modulePath.split('/').pop().toLowerCase(),

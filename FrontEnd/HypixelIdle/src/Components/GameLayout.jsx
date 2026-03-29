@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Outlet } from 'react-router-dom';
 import SidebarMenu from './SidebarMenu';
+import Purse from './Purse';
 import '../Styles/GlobalStyles.css';
 import '../Styles/HomeStyles.css';
 
@@ -105,8 +106,7 @@ const GameLayout = () => {
                 id: 'bank',
                 label: 'Bank',
                 children: [
-                    { id: 'bank-purse', label: 'Test Purse' },
-                    { id: 'bank-storage', label: 'Test Storage' },
+                    { id: 'bank-page', label: 'Bank', to: '/bank' },
                 ],
             },
         ],
@@ -117,6 +117,7 @@ const GameLayout = () => {
         <div className="home-page">
             <SidebarMenu title="Hypixel Idle" menuItems={menuTree} />
             <main className="home-content">
+                <Purse className="layout-purse" />
                 <Outlet />
             </main>
         </div>

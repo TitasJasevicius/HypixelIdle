@@ -6,8 +6,12 @@ const MiningBlock = ({
     ariaLabel,
     blockClassName = '',
     blockStyle,
+    isDisabled = false,
+    helperText = '',
 }) => {
-    const healthPercent = Math.max(0, (currentHealth / maxHealth) * 100);
+    const healthPercent = maxHealth > 0
+        ? Math.max(0, (currentHealth / maxHealth) * 100)
+        : 0;
     const resolvedClassName = ['mining-block', blockClassName].filter(Boolean).join(' ');
 
     return (
@@ -18,10 +22,13 @@ const MiningBlock = ({
                 style={blockStyle}
                 onClick={onMine}
                 aria-label={ariaLabel ?? `Mine ${label}`}
+                disabled={isDisabled}
             >
                 <span className="block-label">{label}</span>
                 <span className="block-health">HITS: {currentHealth}/{maxHealth}</span>
             </button>
+
+            {helperText ? <p className="mining-block-helper">{helperText}</p> : null}
 
             <div className="healthbar-shell" role="presentation">
                 <div className="healthbar-fill" style={{ width: `${healthPercent}%` }} />

@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom';
 const SidebarItem = ({ item, level, expandedNodes, onToggle }) => {
     const hasChildren = Array.isArray(item.children) && item.children.length > 0;
     const isExpanded = expandedNodes.has(item.id);
+    const rowPaddingLeft = `${0.2 + (level * 0.95)}rem`;
 
     return (
         <li className="sidebar-item" data-level={level}>
-            <div className="sidebar-row" style={{ '--level': level }}>
+            <div className="sidebar-row" style={{ paddingLeft: rowPaddingLeft }}>
                 {hasChildren ? (
                     <button
                         type="button"

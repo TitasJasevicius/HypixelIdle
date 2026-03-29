@@ -48,6 +48,10 @@ public partial class HypixelIdleContext : DbContext
 
     public virtual DbSet<Mobinstance> Mobinstances { get; set; }
 
+    public virtual DbSet<Node> Nodes { get; set; }
+
+    public virtual DbSet<Nodetype> Nodetypes { get; set; }
+
     public virtual DbSet<Player> Players { get; set; }
 
     public virtual DbSet<Playeraccesorybag> Playeraccesorybags { get; set; }
@@ -686,6 +690,96 @@ public partial class HypixelIdleContext : DbContext
                 .HasForeignKey(d => d.FkMobidMob)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("mobinstance_ibfk_1");
+        });
+
+        modelBuilder.Entity<Node>(entity =>
+        {
+            entity.HasKey(e => e.IdNode).HasName("PRIMARY");
+
+            entity.ToTable("node");
+
+            entity.HasIndex(e => e.FkNodeitemidItem, "idx_node_item");
+
+            entity.HasIndex(e => e.FkNodetypeidNodeType, "idx_node_type");
+
+            entity.HasIndex(e => e.FkOutputitemidItem, "idx_node_output");
+
+            entity.Property(e => e.IdNode)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("int(11)")
+                .HasColumnName("id_Node");
+            entity.Property(e => e.BaseYieldQty)
+                .HasDefaultValueSql("'1'")
+                .HasColumnType("int(11)")
+                .HasColumnName("baseYieldQty");
+            entity.Property(e => e.FkNodeitemidItem)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Nodeitemid_Item");
+            entity.Property(e => e.FkNodetypeidNodeType)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Nodetypeid_NodeType");
+            entity.Property(e => e.FkOutputitemidItem)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Outputitemid_Item");
+            entity.Property(e => e.IsEnabled).HasColumnName("isEnabled");
+            entity.Property(e => e.IsUnlocked).HasColumnName("isUnlocked");
+            entity.Property(e => e.NodeHealth)
+                .HasDefaultValueSql("'10'")
+                .HasColumnType("int(11)")
+                .HasColumnName("nodeHealth");
+            entity.Property(e => e.RequiredLevel)
+                .HasDefaultValueSql("'1'")
+                .HasColumnType("int(11)")
+                .HasColumnName("requiredLevel");
+            entity.Property(e => e.RequiredToolType)
+                .HasMaxLength(32)
+                .HasColumnName("requiredToolType");
+            entity.Property(e => e.RespawnMs)
+                .HasDefaultValueSql("'3000'")
+                .HasColumnType("int(11)")
+                .HasColumnName("respawnMs");
+            entity.Property(e => e.UnlockPrice)
+                .HasColumnType("int(11)")
+                .HasColumnName("unlockPrice");
+            entity.Property(e => e.XpReward)
+                .HasColumnType("int(11)")
+                .HasColumnName("xpReward");
+            entity.Property(e => e.Zone)
+                .HasMaxLength(64)
+                .HasColumnName("zone");
+
+            entity.HasOne(d => d.FkNodeitemidItemNavigation).WithMany(p => p.NodeFkNodeitemidItemNavigations)
+                .HasForeignKey(d => d.FkNodeitemidItem)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_node_item");
+
+            entity.HasOne(d => d.FkNodetypeidNodeTypeNavigation).WithMany(p => p.Nodes)
+                .HasForeignKey(d => d.FkNodetypeidNodeType)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_node_type");
+
+            entity.HasOne(d => d.FkOutputitemidItemNavigation).WithMany(p => p.NodeFkOutputitemidItemNavigations)
+                .HasForeignKey(d => d.FkOutputitemidItem)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_node_output");
+        });
+
+        modelBuilder.Entity<Nodetype>(entity =>
+        {
+            entity.HasKey(e => e.IdNodeType).HasName("PRIMARY");
+
+            entity.ToTable("node_type");
+
+            entity.HasIndex(e => e.Name, "uq_node_type_name").IsUnique();
+
+            entity.Property(e => e.IdNodeType)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("int(11)")
+                .HasColumnName("id_NodeType");
+            entity.Property(e => e.IsEnabled).HasColumnName("isEnabled");
+            entity.Property(e => e.Name)
+                .HasMaxLength(32)
+                .HasColumnName("name");
         });
 
         modelBuilder.Entity<Player>(entity =>

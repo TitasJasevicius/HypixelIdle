@@ -4,16 +4,6 @@
   --bg-url: url('../Assets/registration_background.png');
 }
 
-html,
-body,
-#root {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
 .auth-page {
   height: 100dvh;
   min-height: 100dvh;

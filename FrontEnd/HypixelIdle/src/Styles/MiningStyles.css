@@ -30,6 +30,29 @@
   margin: 0.3rem 0 0.7rem;
 }
 
+.mining-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.zone-picker-button {
+  border: 1px solid var(--mining-border);
+  background: rgba(12, 28, 39, 0.9);
+  color: var(--mining-text);
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.zone-picker-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .mining-header p {
   margin: 0;
   color: var(--mining-muted);
@@ -59,6 +82,19 @@
   gap: 0.5rem;
   cursor: pointer;
   transition: transform 110ms ease, box-shadow 110ms ease;
+}
+
+.mining-block:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.mining-block-helper {
+  margin: 0;
+  color: var(--mining-muted);
+  font-size: 0.9rem;
 }
 
 .mining-block--cobblestone {
@@ -135,6 +171,99 @@
 
 .mining-nav a {
   color: var(--mining-accent);
+}
+
+.node-meta {
+  margin-top: 0.35rem;
+  color: var(--mining-muted);
+}
+
+.zone-node-list {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.zone-node-button {
+  border: 1px solid var(--mining-border);
+  background: rgba(7, 20, 30, 0.75);
+  color: var(--mining-text);
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.zone-node-button.selected {
+  border-color: var(--mining-accent);
+  box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.35) inset;
+}
+
+.zone-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 6, 11, 0.66);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 35;
+}
+
+.zone-modal {
+  width: min(540px, 100%);
+  max-height: 80vh;
+  overflow: auto;
+  background: rgba(9, 19, 28, 0.98);
+  border: 1px solid var(--mining-border);
+  border-radius: 0.9rem;
+  padding: 1rem;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+}
+
+.zone-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.zone-modal-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.zone-modal-close {
+  border: 1px solid var(--mining-border);
+  background: rgba(14, 30, 43, 0.9);
+  color: var(--mining-text);
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.55rem;
+  cursor: pointer;
+}
+
+.zone-modal-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.zone-option {
+  border: 1px solid var(--mining-border);
+  background: rgba(7, 20, 30, 0.75);
+  color: var(--mining-text);
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+
+.zone-option.selected {
+  border-color: var(--mining-accent);
+  box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.35) inset;
 }
 
 @media (max-width: 700px) {

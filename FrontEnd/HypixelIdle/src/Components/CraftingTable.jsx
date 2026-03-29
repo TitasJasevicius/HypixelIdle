@@ -4,11 +4,13 @@ import axios from 'axios';
 import Inventory from './Inventory';
 import '../Styles/CraftingTableStyles.css';
 
+/** @type {Record<string, string>} */
 const BLOCK_TEXTURES = import.meta.glob('../Assets/Blocks/*.{png,jpg,jpeg,webp,gif,svg}', {
 	eager: true,
 	import: 'default',
 });
 
+/** @type {Record<string, string>} */
 const BLOCK_TEXTURE_BY_FILE = Object.fromEntries(
 	Object.entries(BLOCK_TEXTURES).map(([modulePath, assetUrl]) => [
 		modulePath.split('/').pop().toLowerCase(),
@@ -77,7 +79,7 @@ const getStoredPlayerId = () => {
 	return Number.isNaN(parsedPlayerId) ? null : parsedPlayerId;
 };
 
-const CraftingTable = ({ playerId, inventoryRefreshTick = 0 }) => {
+const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	const [recipes, setRecipes] = useState([]);
 	const [recipeItems, setRecipeItems] = useState({});
 	const [inventorySlots, setInventorySlots] = useState([]);
