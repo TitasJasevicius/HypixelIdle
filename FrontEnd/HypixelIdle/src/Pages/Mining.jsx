@@ -6,6 +6,7 @@ import PlayerCollection from '../Components/PlayerCollection';
 import MiningHeader from '../Components/MiningHeader';
 import ZoneSelectModal from '../Components/ZoneSelectModal';
 import NodeSelectModal from '../Components/NodeSelectModal';
+import useTitaniumEvent from '../Components/TitaniumEventLogic';
 import {
 	BLOCK_TEXTURE_BY_FILE,
 	DEFAULT_BLOCK_HEALTH,
@@ -23,6 +24,8 @@ import {
 } from '../Components/MiningUtils';
 import '../Styles/GlobalStyles.css';
 import '../Styles/MiningStyles.css';
+
+const TITANIUM_SPAWN_CHANCE = 0.05;
 
 const Mining = () => {
 	const [blockHealth, setBlockHealth] = useState(DEFAULT_BLOCK_HEALTH);
@@ -168,13 +171,29 @@ const Mining = () => {
 		fetchMiningData();
 	}, [playerId]);
 
-	const miningNodes = useMemo(() => {
-		const enabledNodes = nodes.filter((node) => node.isEnabled);
-		const typedNodes = enabledNodes.filter((node) => node.fkNodetypeidNodeType === MINING_NODE_TYPE_ID);
+	const miningTypeNodes = useMemo(
+		() => nodes.filter((node) => node.fkNodetypeidNodeType === MINING_NODE_TYPE_ID),
+		[nodes]
+	);
 
-		
-		return typedNodes.length ? typedNodes : enabledNodes;
-	}, [nodes]);
+	const {
+		activeTitaniumNodeId,
+		canSelectNode,
+		handleMinedNode,
+		isActiveTitaniumNode,
+	} = useTitaniumEvent({
+		spawnChance: TITANIUM_SPAWN_CHANCE,
+		miningTypeNodes,
+		itemsById,
+		onSelectZone: setSelectedZone,
+		onSelectNode: setSelectedNodeId,
+		onMessage: setDropError,
+	});
+
+	const miningNodes = useMemo(() => {
+		const enabledNodes = miningTypeNodes.filter((node) => node.isEnabled || node.idNode === activeTitaniumNodeId);
+		return enabledNodes.length ? enabledNodes : miningTypeNodes;
+	}, [miningTypeNodes, activeTitaniumNodeId]);
 
 	const zones = useMemo(() => {
 		const set = new Set();
@@ -201,6 +220,10 @@ const Mining = () => {
 	);
 
 	useEffect(() => {
+		if (activeTitaniumNodeId && selectedNodeId === activeTitaniumNodeId) {
+			return;
+		}
+
 		if (!nodesInSelectedZone.length) {
 			setSelectedNodeId(null);
 			return;
@@ -216,11 +239,11 @@ const Mining = () => {
 		if (!selectedNodeIsUnlocked) {
 			setSelectedNodeId(preferredNode?.idNode ?? null);
 		}
-	}, [nodesInSelectedZone, selectedNodeId, playerMiningLevel, unlockedNodeMap]);
+	}, [nodesInSelectedZone, selectedNodeId, playerMiningLevel, unlockedNodeMap, activeTitaniumNodeId]);
 
 	const selectedNode = useMemo(
-		() => miningNodes.find((node) => node.idNode === selectedNodeId) ?? null,
-		[miningNodes, selectedNodeId]
+		() => miningTypeNodes.find((node) => node.idNode === selectedNodeId) ?? null,
+		[miningTypeNodes, selectedNodeId]
 	);
 
 	useEffect(() => {
@@ -400,8 +423,14 @@ const Mining = () => {
 			return;
 		}
 
+		const minedNode = selectedNode;
 		setBlockHealth(maxHealth);
-		await addMinedItemToInventory();
+		const didMine = await addMinedItemToInventory();
+		if (!didMine) {
+			return;
+		}
+
+		handleMinedNode(minedNode);
 	};
 
 	const selectedNodeDisplay = selectedNode
@@ -423,7 +452,10 @@ const Mining = () => {
 
 	const isSelectedNodeUnlockedByPrice = selectedNode ? isNodeUnlockedByPrice(selectedNode) : false;
 	const isSelectedNodeLevelMet = selectedNode ? selectedNodeRequiredLevel <= playerMiningLevel : false;
-	const isSelectedNodeUnlocked = selectedNode ? (isSelectedNodeLevelMet && isSelectedNodeUnlockedByPrice) : false;
+	const isSelectedTitaniumEventNode = selectedNode ? isActiveTitaniumNode(selectedNode.idNode) : false;
+	const isSelectedNodeUnlocked = selectedNode
+		? (isSelectedNodeLevelMet && (isSelectedNodeUnlockedByPrice || isSelectedTitaniumEventNode))
+		: false;
  	const selectedNodeUnlockPrice = selectedNode?.unlockPrice ?? 0;
 
 	const selectedNodeButtonLabel = selectedNode
@@ -436,6 +468,10 @@ const Mining = () => {
 	};
 
 	const handleSelectNode = async (node) => {
+		if (!canSelectNode(node.idNode)) {
+			return;
+		}
+
 		const isUnlocked = node.isUnlocked || Boolean(unlockedNodeMap[node.idNode]);
 
 		if (!isUnlocked) {
