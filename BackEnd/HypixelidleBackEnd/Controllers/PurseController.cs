@@ -52,7 +52,7 @@ namespace HypixelidleBackEnd.Controllers
             return CreatedAtAction(nameof(GetPurse), new { id = purse.IdPurse }, purse);
         }
 
-        [HttpPost]
+        [HttpPut]
         [Route("UpdatePurse")]
         public async Task<ActionResult> UpdatePurse(int playerId, int amountBalance, int amountBits)
         {

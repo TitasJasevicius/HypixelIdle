@@ -38,6 +38,12 @@
   flex-wrap: wrap;
 }
 
+.mining-header-actions {
+	display: flex;
+	gap: 0.55rem;
+	flex-wrap: wrap;
+}
+
 .zone-picker-button {
   border: 1px solid var(--mining-border);
   background: rgba(12, 28, 39, 0.9);
@@ -264,6 +270,12 @@
 .zone-option.selected {
   border-color: var(--mining-accent);
   box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.35) inset;
+}
+
+.zone-option.locked,
+.zone-option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 @media (max-width: 700px) {

@@ -51,7 +51,7 @@ namespace HypixelidleBackEnd.Controllers
             return CreatedAtAction(nameof(GetBank), new { id = bank.IdBank }, bank);
         }
 
-        [HttpPost]
+        [HttpPut]
         [Route("UpdateBank")]
         public async Task<ActionResult> UpdateBank(int playerId, int amountBalance)
         {

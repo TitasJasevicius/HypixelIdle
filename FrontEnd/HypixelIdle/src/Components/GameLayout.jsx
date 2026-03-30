@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import SidebarMenu from './SidebarMenu';
 import Purse from './Purse';
 import '../Styles/GlobalStyles.css';
@@ -10,6 +10,7 @@ const GameLayout = () => {
     const [skills, setSkills] = useState([]);
     const [isLoadingSkills, setIsLoadingSkills] = useState(true);
     const [skillsError, setSkillsError] = useState('');
+    const location = useLocation();
 
     useEffect(() => {
         const fetchSkills = async () => {
@@ -97,8 +98,6 @@ const GameLayout = () => {
                 id: 'training',
                 label: 'Training',
                 children: [
-                    { id: 'training-combat', label: 'Test Combat' },
-                    { id: 'training-foraging', label: 'Test Foraging' },
                     { id: 'training-skin-render', label: 'Skin Render Test', to: '/skin-render' },
                 ],
             },
@@ -113,11 +112,13 @@ const GameLayout = () => {
         [skillsChildren]
     );
 
+    const isBankRoute = location.pathname === '/bank';
+
     return (
         <div className="home-page">
             <SidebarMenu title="Hypixel Idle" menuItems={menuTree} />
             <main className="home-content">
-                <Purse className="layout-purse" />
+                {!isBankRoute ? <Purse className="layout-purse" /> : null}
                 <Outlet />
             </main>
         </div>

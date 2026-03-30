@@ -31,7 +31,6 @@ const Bank = () => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState('');
 	const [successMessage, setSuccessMessage] = useState('');
-	const [purseRefreshTick, setPurseRefreshTick] = useState(0);
 
 	const playerId = useMemo(getStoredPlayerId, []);
 
@@ -91,7 +90,7 @@ const Bank = () => {
 			setError('');
 			setSuccessMessage('');
 
-			await axios.post('http://localhost:5091/api/Purse/UpdatePurse', null, {
+			await axios.put('http://localhost:5091/api/Purse/UpdatePurse', null, {
 				params: {
 					playerId,
 					amountBalance: -parsedAmount,
@@ -100,7 +99,7 @@ const Bank = () => {
 				headers: { Accept: 'application/json' },
 			});
 
-			await axios.post('http://localhost:5091/api/Bank/UpdateBank', null, {
+			await axios.put('http://localhost:5091/api/Bank/UpdateBank', null, {
 				params: {
 					playerId,
 					amountBalance: parsedAmount,
@@ -110,7 +109,7 @@ const Bank = () => {
 
 			setAmountInput('');
 			setSuccessMessage(`Deposited ${parsedAmount.toFixed(2)} coins.`);
-			setPurseRefreshTick((prev) => prev + 1);
+			window.dispatchEvent(new CustomEvent('purse-updated'));
 			await fetchBalances();
 		} catch (submitError) {
 			console.error('Failed to deposit coins:', submitError);
@@ -136,7 +135,7 @@ const Bank = () => {
 			setError('');
 			setSuccessMessage('');
 
-			await axios.post('http://localhost:5091/api/Bank/UpdateBank', null, {
+			await axios.put('http://localhost:5091/api/Bank/UpdateBank', null, {
 				params: {
 					playerId,
 					amountBalance: -parsedAmount,
@@ -144,7 +143,7 @@ const Bank = () => {
 				headers: { Accept: 'application/json' },
 			});
 
-			await axios.post('http://localhost:5091/api/Purse/UpdatePurse', null, {
+			await axios.put('http://localhost:5091/api/Purse/UpdatePurse', null, {
 				params: {
 					playerId,
 					amountBalance: parsedAmount,
@@ -155,7 +154,7 @@ const Bank = () => {
 
 			setAmountInput('');
 			setSuccessMessage(`Withdrew ${parsedAmount.toFixed(2)} coins.`);
-			setPurseRefreshTick((prev) => prev + 1);
+			window.dispatchEvent(new CustomEvent('purse-updated'));
 			await fetchBalances();
 		} catch (submitError) {
 			console.error('Failed to withdraw coins:', submitError);
@@ -177,7 +176,7 @@ const Bank = () => {
 					<h2>Bank Balance</h2>
 					<p>{isLoading ? 'Loading...' : `${Number(bank?.balance ?? 0).toFixed(2)} coins`}</p>
 				</article>
-				<Purse className="bank-purse-card" playerId={playerId} refreshKey={purseRefreshTick} />
+				<Purse className="bank-purse-card" playerId={playerId} />
 			</div>
 
 			<section className="bank-actions" aria-label="Bank actions">

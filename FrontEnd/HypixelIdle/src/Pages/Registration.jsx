@@ -3,10 +3,10 @@ import '../Styles/RegistrationStyles.css';
 import '../Styles/GlobalStyles.css';
 
 const Registration = () => {
-    /*const handleToggle = () => {
+    const handleToggle = () => {
         // do something later
-        console.log("Toggle to login");
-    }; */
+        
+    }; 
 
     return (
         <div className="registration-page">

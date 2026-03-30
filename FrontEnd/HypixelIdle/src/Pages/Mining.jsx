@@ -3,138 +3,26 @@ import axios from 'axios';
 import MiningBlock from '../Components/MiningBlock';
 import Inventory from '../Components/Inventory';
 import PlayerCollection from '../Components/PlayerCollection';
+import MiningHeader from '../Components/MiningHeader';
+import ZoneSelectModal from '../Components/ZoneSelectModal';
+import NodeSelectModal from '../Components/NodeSelectModal';
+import {
+	BLOCK_TEXTURE_BY_FILE,
+	DEFAULT_BLOCK_HEALTH,
+	MINED_SESSION_STORAGE_KEY,
+	MINING_NODE_TYPE_ID,
+	MINING_SKILL_NAME,
+	getAuthHeaders,
+	getUnlockedNodesStorageKey,
+	loadMinedSessionMap,
+	loadUnlockedNodeMap,
+	normalizeItem,
+	normalizeNode,
+	resolveIconPath,
+	toNumberOrNull,
+} from '../Components/MiningUtils';
 import '../Styles/GlobalStyles.css';
 import '../Styles/MiningStyles.css';
-
-/** @type {Record<string, string>} */
-const BLOCK_TEXTURES = import.meta.glob('../Assets/Blocks/*.{png,jpg,jpeg,webp,gif,svg}', {
-	eager: true,
-	import: 'default',
-});
-
-/** @type {Record<string, string>} */
-const BLOCK_TEXTURE_BY_FILE = Object.fromEntries(
-	Object.entries(BLOCK_TEXTURES).map(([modulePath, assetUrl]) => [
-		modulePath.split('/').pop().toLowerCase(),
-		assetUrl,
-	])
-);
-
-const DEFAULT_BLOCK_HEALTH = 10;
-const MINING_NODE_TYPE_ID = 1;
-const MINED_SESSION_STORAGE_KEY = 'miningSessionMinedByOutputItem';
-
-const loadMinedSessionMap = () => {
-	try {
-		const raw = localStorage.getItem(MINED_SESSION_STORAGE_KEY);
-		if (!raw) {
-			return {};
-		}
-
-		const parsed = JSON.parse(raw);
-		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-			return {};
-		}
-
-		return parsed;
-	} catch (error) {
-		console.warn('Failed to parse mined session map:', error);
-		return {};
-	}
-};
-
-const toNumberOrNull = (value) => {
-	if (value === null || value === undefined || value === '') {
-		return null;
-	}
-
-	const parsed = Number(value);
-	return Number.isFinite(parsed) ? parsed : null;
-};
-
-const toBoolean = (value, fallback = false) => {
-	if (typeof value === 'boolean') {
-		return value;
-	}
-
-	if (typeof value === 'number') {
-		return value !== 0;
-	}
-
-	if (typeof value === 'string') {
-		const normalized = value.trim().toLowerCase();
-		if (normalized === 'true' || normalized === '1') {
-			return true;
-		}
-		if (normalized === 'false' || normalized === '0') {
-			return false;
-		}
-	}
-
-	return fallback;
-};
-
-const getAuthHeaders = () => {
-	const accessToken = localStorage.getItem('accessToken');
-
-	if (!accessToken) {
-		return {};
-	}
-
-	return {
-		Authorization: `Bearer ${accessToken}`,
-	};
-};
-
-const resolveIconPath = (iconPath) => {
-	if (!iconPath || typeof iconPath !== 'string') {
-		return '';
-	}
-
-	const trimmedPath = iconPath.trim();
-
-	if (trimmedPath.startsWith('http://') || trimmedPath.startsWith('https://')) {
-		return trimmedPath;
-	}
-
-	const lowerPath = trimmedPath
-		.replaceAll('\\', '/')
-		.replace(/^\/+/, '')
-		.toLowerCase();
-
-	const pathWithoutPrefix = lowerPath
-		.replace(/^src\/assets\/blocks\//, '')
-		.replace(/^assets\/blocks\//, '');
-
-	const hasFileExtension = /\.(png|jpe?g|webp|gif|svg)$/i.test(pathWithoutPrefix);
-	const fileName = (hasFileExtension ? pathWithoutPrefix : `${pathWithoutPrefix}.png`).split('/').pop();
-
-	return fileName ? (BLOCK_TEXTURE_BY_FILE[fileName] ?? '') : '';
-};
-
-const normalizeNode = (node) => ({
-	idNode: toNumberOrNull(node.idNode ?? node.IdNode),
-	fkNodetypeidNodeType: toNumberOrNull(node.fkNodetypeidNodeType ?? node.FkNodetypeidNodeType),
-	fkNodeitemidItem: toNumberOrNull(node.fkNodeitemidItem ?? node.FkNodeitemidItem),
-	fkOutputitemidItem: toNumberOrNull(node.fkOutputitemidItem ?? node.FkOutputitemidItem),
-	requiredLevel: toNumberOrNull(node.requiredLevel ?? node.RequiredLevel) ?? 1,
-	isUnlocked: toBoolean(node.isUnlocked ?? node.IsUnlocked, false),
-	unlockPrice: toNumberOrNull(node.unlockPrice ?? node.UnlockPrice) ?? 0,
-	xpReward: toNumberOrNull(node.xpReward ?? node.XpReward) ?? 0,
-	baseYieldQty: toNumberOrNull(node.baseYieldQty ?? node.BaseYieldQty) ?? 1,
-	respawnMs: toNumberOrNull(node.respawnMs ?? node.RespawnMs) ?? 3000,
-	nodeHealth: toNumberOrNull(node.nodeHealth ?? node.NodeHealth) ?? DEFAULT_BLOCK_HEALTH,
-	requiredToolType: node.requiredToolType ?? node.RequiredToolType ?? '',
-	zone: node.zone ?? node.Zone ?? 'Unzoned',
-	isEnabled: toBoolean(node.isEnabled ?? node.IsEnabled, true),
-});
-
-const normalizeItem = (item) => ({
-	idItem: toNumberOrNull(item.idItem ?? item.IdItem),
-	name: item.name ?? item.Name ?? 'Unknown Item',
-	icon: item.icon ?? item.Icon ?? '',
-	fkCollectionidCollection: toNumberOrNull(item.fkCollectionidCollection ?? item.FkCollectionidCollection),
-});
 
 const Mining = () => {
 	const [blockHealth, setBlockHealth] = useState(DEFAULT_BLOCK_HEALTH);
@@ -143,12 +31,21 @@ const Mining = () => {
 	const [itemsById, setItemsById] = useState({});
 	const [isLoadingNodes, setIsLoadingNodes] = useState(true);
 	const [nodeError, setNodeError] = useState('');
+	const [isLoadingSkill, setIsLoadingSkill] = useState(true);
+	const [skillError, setSkillError] = useState('');
+	const [playerMiningLevel, setPlayerMiningLevel] = useState(0);
+	const [purseBalance, setPurseBalance] = useState(0);
+	const [isLoadingPurse, setIsLoadingPurse] = useState(true);
+	const [purseError, setPurseError] = useState('');
+	const [isUnlockingNode, setIsUnlockingNode] = useState(false);
+	const [unlockedNodeMap, setUnlockedNodeMap] = useState({});
 	const [dropError, setDropError] = useState('');
 	const [isSavingDrop, setIsSavingDrop] = useState(false);
 	const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
 	const [selectedZone, setSelectedZone] = useState('');
 	const [selectedNodeId, setSelectedNodeId] = useState(null);
 	const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
+	const [isNodeModalOpen, setIsNodeModalOpen] = useState(false);
 
 	const playerId = useMemo(() => {
 		const storedPlayerId = localStorage.getItem('playerId');
@@ -161,13 +58,23 @@ const Mining = () => {
 		return Number.isNaN(parsedPlayerId) ? null : parsedPlayerId;
 	}, []);
 
- 	useEffect(() => {
+	const unlockedNodesStorageKey = useMemo(() => getUnlockedNodesStorageKey(playerId), [playerId]);
+
+	useEffect(() => {
+		setUnlockedNodeMap(loadUnlockedNodeMap(unlockedNodesStorageKey));
+	}, [unlockedNodesStorageKey]);
+
+	useEffect(() => {
 		const fetchMiningData = async () => {
 			try {
 				setIsLoadingNodes(true);
+				setIsLoadingSkill(true);
+				setIsLoadingPurse(true);
 				setNodeError('');
+				setSkillError('');
+				setPurseError('');
 
-				const [nodesResponse, itemsResponse] = await Promise.all([
+				const requests = [
 					axios.get('http://localhost:5091/api/Node/GetNodes', {
 						headers: {
 							Accept: 'application/json',
@@ -178,7 +85,40 @@ const Mining = () => {
 							Accept: 'application/json',
 						},
 					}),
-				]);
+					axios.get('http://localhost:5091/api/Skills/GetSkills', {
+						headers: {
+							Accept: 'application/json',
+						},
+					}),
+				];
+
+				if (playerId) {
+					requests.push(
+						axios.get('http://localhost:5091/api/PlayerSkills/GetPlayerSkills', {
+							params: {
+								playerId,
+							},
+							headers: {
+								Accept: 'application/json',
+								...getAuthHeaders(),
+							},
+						})
+						);
+
+						requests.push(
+							axios.get('http://localhost:5091/api/Purse/GetPurse', {
+								params: {
+									playerId,
+								},
+								headers: {
+									Accept: 'application/json',
+									...getAuthHeaders(),
+								},
+							})
+					);
+				}
+
+					const [nodesResponse, itemsResponse, skillsResponse, playerSkillsResponse, purseResponse] = await Promise.all(requests);
 
 				const normalizedNodes = Array.isArray(nodesResponse.data)
 					? nodesResponse.data.map(normalizeNode)
@@ -197,22 +137,42 @@ const Mining = () => {
 
 				setNodes(normalizedNodes);
 				setItemsById(itemMap);
+
+				const skills = Array.isArray(skillsResponse?.data) ? skillsResponse.data : [];
+				const miningSkill = skills.find((skill) => {
+					const name = (skill.name ?? skill.Name ?? '').toString().trim().toLowerCase();
+					return name === MINING_SKILL_NAME;
+				});
+
+				const miningSkillId = toNumberOrNull(miningSkill?.idSkills ?? miningSkill?.IdSkills);
+				const playerSkills = Array.isArray(playerSkillsResponse?.data) ? playerSkillsResponse.data : [];
+				const playerMiningSkill = miningSkillId != null
+					? playerSkills.find((skill) => toNumberOrNull(skill.fkSkillsidSkills ?? skill.FkSkillsidSkills) === miningSkillId)
+					: null;
+
+				setPlayerMiningLevel(toNumberOrNull(playerMiningSkill?.level ?? playerMiningSkill?.Level) ?? 0);
+
+				setPurseBalance(toNumberOrNull(purseResponse?.data?.balance ?? purseResponse?.data?.Balance) ?? 0);
 			} catch (error) {
 				console.error('Failed to load mining nodes:', error);
 				setNodeError('Failed to load mining nodes from API.');
+				setSkillError('Failed to load player mining level.');
+				setPurseError('Failed to load purse balance.');
 			} finally {
 				setIsLoadingNodes(false);
+				setIsLoadingSkill(false);
+				setIsLoadingPurse(false);
 			}
 		};
 
 		fetchMiningData();
-	}, []);
+	}, [playerId]);
 
 	const miningNodes = useMemo(() => {
 		const enabledNodes = nodes.filter((node) => node.isEnabled);
 		const typedNodes = enabledNodes.filter((node) => node.fkNodetypeidNodeType === MINING_NODE_TYPE_ID);
 
-		// If type ids differ between environments, fall back to all enabled nodes.
+		
 		return typedNodes.length ? typedNodes : enabledNodes;
 	}, [nodes]);
 
@@ -246,10 +206,17 @@ const Mining = () => {
 			return;
 		}
 
-		if (!selectedNodeId || !nodesInSelectedZone.some((node) => node.idNode === selectedNodeId)) {
-			setSelectedNodeId(nodesInSelectedZone[0].idNode);
+		const levelMetNodes = nodesInSelectedZone.filter((node) => (node.requiredLevel ?? 1) <= playerMiningLevel);
+		const fullyUnlockedNodes = levelMetNodes.filter((node) => node.isUnlocked || unlockedNodeMap[node.idNode]);
+		const preferredNode = fullyUnlockedNodes[0] ?? null;
+		const selectedNodeIsUnlocked = selectedNodeId
+			? fullyUnlockedNodes.some((node) => node.idNode === selectedNodeId)
+			: false;
+
+		if (!selectedNodeIsUnlocked) {
+			setSelectedNodeId(preferredNode?.idNode ?? null);
 		}
-	}, [nodesInSelectedZone, selectedNodeId]);
+	}, [nodesInSelectedZone, selectedNodeId, playerMiningLevel, unlockedNodeMap]);
 
 	const selectedNode = useMemo(
 		() => miningNodes.find((node) => node.idNode === selectedNodeId) ?? null,
@@ -285,7 +252,7 @@ const Mining = () => {
 
 	const nodeTextureStyle = useMemo(() => {
 		const iconPath = nodeItem?.icon;
-		const resolvedIconPath = resolveIconPath(iconPath);
+		const resolvedIconPath = resolveIconPath(iconPath, BLOCK_TEXTURE_BY_FILE);
 
 		if (!resolvedIconPath) {
 			return undefined;
@@ -303,6 +270,7 @@ const Mining = () => {
 		setDropError('');
 
 		const itemId = selectedNode?.fkOutputitemidItem;
+		const quantity = Math.max(1, Math.floor(Number(selectedNode?.baseYieldQty ?? 1)));
 		if (!itemId) {
 			setDropError('Cannot add drop: item id is missing.');
 			return false;
@@ -319,7 +287,7 @@ const Mining = () => {
 			await axios.post('http://localhost:5091/api/Inventory/AddItemToInventory', {
 				playerId,
 				itemId,
-				quantity: 1,
+				quantity,
 			}, {
 				headers: {
 					Accept: 'application/json',
@@ -349,8 +317,79 @@ const Mining = () => {
 		}
 	};
 
+	const unlockNode = async (nodeToUnlock) => {
+		if (!nodeToUnlock || !playerId || !nodeToUnlock.idNode) {
+			return false;
+		}
+
+		const requiredLevel = nodeToUnlock.requiredLevel ?? 1;
+		const unlockPrice = Number(nodeToUnlock.unlockPrice ?? 0);
+		const isLevelMet = requiredLevel <= playerMiningLevel;
+		const isAlreadyUnlocked = nodeToUnlock.isUnlocked || Boolean(unlockedNodeMap[nodeToUnlock.idNode]);
+
+		if (!isLevelMet) {
+			setDropError(`You need Mining level ${requiredLevel} first.`);
+			return false;
+		}
+
+		if (isAlreadyUnlocked) {
+			return true;
+		}
+
+		if (unlockPrice > purseBalance) {
+			setDropError(`Not enough coins. Requires ${unlockPrice.toFixed(2)}.`);
+			return false;
+		}
+
+		try {
+			setIsUnlockingNode(true);
+			setDropError('');
+
+			if (unlockPrice > 0) {
+				await axios.put('http://localhost:5091/api/Purse/UpdatePurse', null, {
+					params: {
+						playerId,
+						amountBalance: -unlockPrice,
+						amountBits: 0,
+					},
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
+				});
+			}
+
+			setPurseBalance((prev) => prev - unlockPrice);
+			setUnlockedNodeMap((prev) => {
+				const next = {
+					...prev,
+					[nodeToUnlock.idNode]: true,
+				};
+
+				localStorage.setItem(unlockedNodesStorageKey, JSON.stringify(next));
+				return next;
+			});
+			return true;
+		} catch (error) {
+			console.error('Failed to unlock node:', error);
+			setDropError('Failed to unlock node.');
+			return false;
+		} finally {
+			setIsUnlockingNode(false);
+		}
+	};
+
 	const mineBlock = async () => {
 		if (isSavingDrop || !selectedNode) {
+			return;
+		}
+
+		if (!isSelectedNodeUnlocked) {
+			if (!isSelectedNodeLevelMet) {
+				setDropError(`Node locked. Requires Mining level ${selectedNodeRequiredLevel}.`);
+			} else {
+				setDropError(`Node locked. Unlock costs ${selectedNodeUnlockPrice.toFixed(2)} coins.`);
+			}
 			return;
 		}
 
@@ -369,52 +408,66 @@ const Mining = () => {
 		? `${nodeItem?.name ?? 'Unknown Node'} -> ${outputItem?.name ?? 'Unknown Drop'}`
 		: 'No node selected';
 
+	const selectedNodeRequiredLevel = selectedNode?.requiredLevel ?? 1;
+	const isNodeUnlockedByPrice = (node) => {
+		if (!node?.idNode) {
+			return false;
+		}
+
+		if (node.isUnlocked) {
+			return true;
+		}
+
+		return Boolean(unlockedNodeMap[node.idNode]);
+	};
+
+	const isSelectedNodeUnlockedByPrice = selectedNode ? isNodeUnlockedByPrice(selectedNode) : false;
+	const isSelectedNodeLevelMet = selectedNode ? selectedNodeRequiredLevel <= playerMiningLevel : false;
+	const isSelectedNodeUnlocked = selectedNode ? (isSelectedNodeLevelMet && isSelectedNodeUnlockedByPrice) : false;
+ 	const selectedNodeUnlockPrice = selectedNode?.unlockPrice ?? 0;
+
+	const selectedNodeButtonLabel = selectedNode
+		? `${nodeItem?.name ?? 'Unknown'} -> ${outputItem?.name ?? 'Unknown'}`
+		: 'None';
+
+	const handleSelectZone = (zone) => {
+		setSelectedZone(zone);
+		setIsZoneModalOpen(false);
+	};
+
+	const handleSelectNode = async (node) => {
+		const isUnlocked = node.isUnlocked || Boolean(unlockedNodeMap[node.idNode]);
+
+		if (!isUnlocked) {
+			const didUnlock = await unlockNode(node);
+			if (!didUnlock) {
+				return;
+			}
+		}
+
+		setSelectedNodeId(node.idNode);
+		setIsNodeModalOpen(false);
+	};
+
 	return (
 		<section className="mining-content">
-				<header className="mining-header">
-					<div className="mining-header-top">
-						<h1>Mining Nodes</h1>
-						<button
-							type="button"
-							className="zone-picker-button"
-							onClick={() => setIsZoneModalOpen(true)}
-							disabled={!zones.length}
-						>
-							Select Zone: {selectedZone || 'None'}
-						</button>
-					</div>
-					<p>Pick a zone, choose a node, then mine it for drops.</p>
-					{isLoadingNodes ? <p>Loading node data...</p> : null}
-					{nodeError ? <p>{nodeError}</p> : null}
-					{dropError ? <p>{dropError}</p> : null}
-					{selectedNode ? <p className="node-meta">{selectedNodeDisplay}</p> : null}
-					{selectedNode?.requiredToolType ? (
-						<p className="node-meta">Required tool: {selectedNode.requiredToolType}</p>
-					) : null}
-				</header>
-
-				<section className="zone-node-list" aria-label="Nodes in selected zone">
-					{nodesInSelectedZone.length ? (
-						nodesInSelectedZone.map((node) => {
-							const zoneNodeItem = itemsById[node.fkNodeitemidItem];
-							const zoneOutputItem = itemsById[node.fkOutputitemidItem];
-							const label = `${zoneNodeItem?.name ?? 'Unknown'} -> ${zoneOutputItem?.name ?? 'Unknown'}`;
-
-							return (
-								<button
-									type="button"
-									key={node.idNode}
-									className={`zone-node-button ${node.idNode === selectedNodeId ? 'selected' : ''}`}
-									onClick={() => setSelectedNodeId(node.idNode)}
-								>
-									{label}
-								</button>
-							);
-						})
-					) : (
-						<p className="node-meta">No nodes available in this zone.</p>
-					)}
-				</section>
+			<MiningHeader
+				selectedZone={selectedZone}
+				onOpenZone={() => setIsZoneModalOpen(true)}
+				hasZones={zones.length > 0}
+				onOpenNode={() => setIsNodeModalOpen(true)}
+				hasNodesInZone={nodesInSelectedZone.length > 0}
+				selectedNodeButtonLabel={selectedNodeButtonLabel}
+				isLoadingNodes={isLoadingNodes}
+				isLoadingSkill={isLoadingSkill}
+				nodeError={nodeError}
+				skillError={skillError}
+				dropError={dropError}
+				playerMiningLevel={playerMiningLevel}
+				selectedNode={selectedNode}
+				isSelectedNodeUnlocked={isSelectedNodeUnlocked}
+				selectedNodeRequiredLevel={selectedNodeRequiredLevel}
+			/>
 
 				<MiningBlock
 					label={itemName}
@@ -425,7 +478,13 @@ const Mining = () => {
 					blockClassName="mining-block--cobblestone"
 					blockStyle={nodeTextureStyle}
 					isDisabled={!selectedNode || isSavingDrop}
-					helperText={!selectedNode ? 'Select a node first.' : ''}
+					helperText={
+						!selectedNode
+							? 'Select a node first.'
+							: (!isSelectedNodeLevelMet
+								? `Locked until Mining level ${selectedNodeRequiredLevel}.`
+								: (isSelectedNodeUnlocked ? '' : `Unlock this node for ${selectedNodeUnlockPrice.toFixed(2)} coins.`))
+					}
 				/>
 
 				<section className="mining-stats" aria-label="Mining stats">
@@ -443,36 +502,26 @@ const Mining = () => {
 
 				<Inventory playerId={playerId} refreshKey={inventoryRefreshTick} />
 
-				{isZoneModalOpen ? (
-					<div className="zone-modal-overlay" onClick={() => setIsZoneModalOpen(false)} role="presentation">
-						<div className="zone-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="Select mining zone">
-							<div className="zone-modal-header">
-								<h2>Select Zone</h2>
-								<button type="button" className="zone-modal-close" onClick={() => setIsZoneModalOpen(false)}>Close</button>
-							</div>
-							<div className="zone-modal-list">
-								{zones.map((zone) => {
-									const zoneCount = miningNodes.filter((node) => (node.zone || 'Unzoned').trim() === zone).length;
+			<ZoneSelectModal
+				isOpen={isZoneModalOpen}
+				zones={zones}
+				miningNodes={miningNodes}
+				selectedZone={selectedZone}
+				onSelectZone={handleSelectZone}
+				onClose={() => setIsZoneModalOpen(false)}
+			/>
 
-									return (
-										<button
-											type="button"
-											key={zone}
-											className={`zone-option ${zone === selectedZone ? 'selected' : ''}`}
-											onClick={() => {
-												setSelectedZone(zone);
-												setIsZoneModalOpen(false);
-											}}
-										>
-											<span>{zone}</span>
-											<span>{zoneCount} node{zoneCount === 1 ? '' : 's'}</span>
-										</button>
-									);
-								})}
-							</div>
-						</div>
-					</div>
-				) : null}
+			<NodeSelectModal
+				isOpen={isNodeModalOpen}
+				nodes={nodesInSelectedZone}
+				itemsById={itemsById}
+				playerMiningLevel={playerMiningLevel}
+				unlockedNodeMap={unlockedNodeMap}
+				selectedNodeId={selectedNodeId}
+				isUnlockingNode={isUnlockingNode}
+				onSelectNode={handleSelectNode}
+				onClose={() => setIsNodeModalOpen(false)}
+			/>
 		</section>
 	);
 };

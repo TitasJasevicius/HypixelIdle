@@ -23,6 +23,7 @@ const Purse = ({ className = '', playerId = null, refreshKey = 0 }) => {
 	const [purse, setPurse] = useState(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState('');
+	const [eventRefreshTick, setEventRefreshTick] = useState(0);
 
 	const resolvedPlayerId = useMemo(() => {
 		if (playerId != null) {
@@ -31,6 +32,18 @@ const Purse = ({ className = '', playerId = null, refreshKey = 0 }) => {
 
 		return getStoredPlayerId();
 	}, [playerId]);
+
+	useEffect(() => {
+		const handlePurseUpdated = () => {
+			setEventRefreshTick((prev) => prev + 1);
+		};
+
+		window.addEventListener('purse-updated', handlePurseUpdated);
+
+		return () => {
+			window.removeEventListener('purse-updated', handlePurseUpdated);
+		};
+	}, []);
 
 	useEffect(() => {
 		const fetchPurse = async () => {
@@ -65,7 +78,7 @@ const Purse = ({ className = '', playerId = null, refreshKey = 0 }) => {
 		};
 
 		fetchPurse();
-	}, [resolvedPlayerId, refreshKey]);
+	}, [resolvedPlayerId, refreshKey, eventRefreshTick]);
 
 	const balanceText = purse ? Number(purse.balance).toFixed(2) : '0.00';
 	const bitsText = purse ? String(purse.bits) : '0';

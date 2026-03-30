@@ -178,10 +178,8 @@ const PlayerSkinRender = forwardRef(function PlayerSkinRender({ initialUsername 
 	return (
 		<section className="player-skin-render-page">
 			<header className="player-skin-render-header">
-				<h1>Player Skin Render Test</h1>
-				<p>
-					SkyCrypt-like flow: username -&gt; Mojang UUID -&gt; session textures -&gt; skinview3d canvas.
-				</p>
+				<h1>Player Skin Render</h1>
+				
 			</header>
 
 			<form className="player-skin-render-form" onSubmit={onSubmit}>
