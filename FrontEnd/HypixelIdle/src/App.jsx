@@ -5,6 +5,7 @@ import GameLayout from './Components/GameLayout';
 import PlayerSkinRender from './Components/PlayerSkinRender';
 import Home from './Pages/Home';
 import Mining from './Pages/Mining';
+import Foraging from './Pages/Foraging';
 import Bank from './Pages/Bank';
 import CraftingTable from './Components/CraftingTable';
 
@@ -53,6 +54,7 @@ function App() {
         >
           <Route index element={<Home />} />
           <Route path="mining" element={<Mining />} />
+          <Route path="foraging" element={<Foraging />} />
           <Route path="bank" element={<Bank />} />
           <Route path="crafting" element={<CraftingTable />} />
           <Route path="skin-render" element={<PlayerSkinRender />} />

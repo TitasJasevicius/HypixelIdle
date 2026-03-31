@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { formatDisplayName } from './DisplayNameUtils';
 import '../Styles/InventoryStyles.css';
 
 const HOTBAR_SLOTS = 9;
@@ -39,7 +40,7 @@ const normalizeSlot = (slot) => ({
 	slotIndex: slot.slotIndex ?? slot.SlotIndex,
 	quantity: slot.quantity ?? slot.Quantity ?? 0,
 	fkItemidItem: slot.fkItemidItem ?? slot.FkItemidItem ?? null,
-	itemName: slot.itemName ?? slot.ItemName ?? '',
+	itemName: formatDisplayName(slot.itemName ?? slot.ItemName ?? ''),
 	itemIcon: slot.itemIcon ?? slot.ItemIcon ?? '',
 });
 
@@ -153,6 +154,7 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 		const itemImage = hasItem
 			? (resolvedIconPath || DEFAULT_ITEM_ICON)
 			: '';
+		const displayName = formatDisplayName(slot.itemName) || `Item ${slot.fkItemidItem}`;
 
 		return (
 			<button
@@ -167,7 +169,7 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 					<>
 						<img
 							src={itemImage}
-							alt={slot.itemName || `Item ${slot.fkItemidItem}`}
+							alt={displayName}
 							className="inventory-slot-item-image"
 							draggable={false}
 							onError={(event) => {
@@ -180,7 +182,7 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 								img.src = DEFAULT_ITEM_ICON;
 							}}
 						/>
-						<span className="inventory-slot-item-label">{slot.itemName || `#${slot.fkItemidItem}`}</span>
+						<span className="inventory-slot-item-label">{formatDisplayName(slot.itemName) || `#${slot.fkItemidItem}`}</span>
 						<span className="inventory-slot-quantity">{slot.quantity}</span>
 					</>
 				) : null}

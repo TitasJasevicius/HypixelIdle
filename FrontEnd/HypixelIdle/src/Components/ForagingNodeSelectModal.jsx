@@ -1,10 +1,10 @@
 import { formatDisplayName } from './DisplayNameUtils';
 
-const NodeSelectModal = ({
+const ForagingNodeSelectModal = ({
 	isOpen,
 	nodes,
 	itemsById,
-	playerMiningLevel,
+	playerForagingLevel,
 	unlockedNodeMap,
 	selectedNodeId,
 	isUnlockingNode,
@@ -16,19 +16,19 @@ const NodeSelectModal = ({
 	}
 
 	return (
-		<div className="zone-modal-overlay" onClick={onClose} role="presentation">
+		<div className="foraging-zone-modal-overlay" onClick={onClose} role="presentation">
 			<div
-				className="zone-modal"
+				className="foraging-zone-modal"
 				onClick={(event) => event.stopPropagation()}
 				role="dialog"
 				aria-modal="true"
-				aria-label="Select mining node"
+				aria-label="Select foraging node"
 			>
-				<div className="zone-modal-header">
+				<div className="foraging-zone-modal-header">
 					<h2>Select Node</h2>
-					<button type="button" className="zone-modal-close" onClick={onClose}>Close</button>
+					<button type="button" className="foraging-zone-modal-close" onClick={onClose}>Close</button>
 				</div>
-				<div className="zone-modal-list">
+				<div className="foraging-zone-modal-list">
 					{nodes.length ? (
 						nodes.map((node) => {
 							const zoneNodeItem = itemsById[node.fkNodeitemidItem];
@@ -36,14 +36,14 @@ const NodeSelectModal = ({
 							const sourceName = formatDisplayName(zoneNodeItem?.name ?? 'Unknown');
 							const outputName = formatDisplayName(zoneOutputItem?.name ?? 'Unknown');
 							const label = `${sourceName} -> ${outputName}`;
-							const isLevelMet = (node.requiredLevel ?? 1) <= playerMiningLevel;
+							const isLevelMet = (node.requiredLevel ?? 1) <= playerForagingLevel;
 							const isUnlocked = node.isUnlocked || Boolean(unlockedNodeMap[node.idNode]);
 
 							return (
 								<button
 									type="button"
 									key={node.idNode}
-									className={`zone-option ${node.idNode === selectedNodeId ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}`.trim()}
+									className={`foraging-zone-option ${node.idNode === selectedNodeId ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}`.trim()}
 									disabled={!isLevelMet || isUnlockingNode}
 									onClick={() => onSelectNode(node)}
 								>
@@ -53,7 +53,7 @@ const NodeSelectModal = ({
 							);
 						})
 					) : (
-						<p className="node-meta">No nodes available in this zone.</p>
+						<p className="foraging-node-meta">No nodes available in this zone.</p>
 					)}
 				</div>
 			</div>
@@ -61,4 +61,4 @@ const NodeSelectModal = ({
 	);
 };
 
-export default NodeSelectModal;
+export default ForagingNodeSelectModal;

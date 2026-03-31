@@ -1,6 +1,6 @@
-const MiningHeader = ({
-	title = 'Mining Nodes',
-	skillLabel = 'Mining',
+const ForagingHeader = ({
+	title = 'Foraging Nodes',
+	skillLabel = 'Foraging',
 	selectedZone,
 	onOpenZone,
 	hasZones,
@@ -12,18 +12,18 @@ const MiningHeader = ({
 	nodeError,
 	skillError,
 	dropError,
-	playerMiningLevel,
+	playerForagingLevel,
 	selectedNode,
 	isSelectedNodeUnlocked,
 	selectedNodeRequiredLevel,
 }) => (
-	<header className="mining-header">
-		<div className="mining-header-top">
+	<header className="foraging-header">
+		<div className="foraging-header-top">
 			<h1>{title}</h1>
-			<div className="mining-header-actions">
+			<div className="foraging-header-actions">
 				<button
 					type="button"
-					className="zone-picker-button"
+					className="foraging-zone-picker-button"
 					onClick={onOpenZone}
 					disabled={!hasZones}
 				>
@@ -31,7 +31,7 @@ const MiningHeader = ({
 				</button>
 				<button
 					type="button"
-					className="zone-picker-button"
+					className="foraging-zone-picker-button"
 					onClick={onOpenNode}
 					disabled={!hasNodesInZone}
 				>
@@ -44,14 +44,14 @@ const MiningHeader = ({
 		{nodeError ? <p>{nodeError}</p> : null}
 		{skillError ? <p>{skillError}</p> : null}
 		{dropError ? <p>{dropError}</p> : null}
-		<p className="node-meta">{skillLabel} level: {playerMiningLevel}</p>
+		<p className="foraging-node-meta">{skillLabel} level: {playerForagingLevel}</p>
 		{selectedNode && !isSelectedNodeUnlocked ? (
-			<p className="node-meta">Locked until {skillLabel} level {selectedNodeRequiredLevel}.</p>
+			<p className="foraging-node-meta">Locked until {skillLabel} level {selectedNodeRequiredLevel}.</p>
 		) : null}
 		{selectedNode?.requiredToolType ? (
-			<p className="node-meta">Required tool: {selectedNode.requiredToolType}</p>
+			<p className="foraging-node-meta">Required tool: {selectedNode.requiredToolType}</p>
 		) : null}
 	</header>
 );
 
-export default MiningHeader;
+export default ForagingHeader;

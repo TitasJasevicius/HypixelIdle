@@ -1,3 +1,5 @@
+import { formatDisplayName } from './DisplayNameUtils';
+
 /** @type {Record<string, string>} */
 export const BLOCK_TEXTURES = import.meta.glob('../Assets/Blocks/*.{png,jpg,jpeg,webp,gif,svg}', {
 	eager: true,
@@ -152,7 +154,10 @@ export const normalizeNode = (node) => ({
 
 export const normalizeItem = (item) => ({
 	idItem: toNumberOrNull(item.idItem ?? item.IdItem),
-	name: item.name ?? item.Name ?? 'Unknown Item',
+	name: formatDisplayName(item.name ?? item.Name ?? 'Unknown Item'),
+	category: item.category ?? item.Category ?? '',
+	stackValue: toNumberOrNull(item.stackValue ?? item.StackValue),
+	sellValue: toNumberOrNull(item.sellValue ?? item.SellValue),
 	icon: item.icon ?? item.Icon ?? '',
 	fkCollectionidCollection: toNumberOrNull(item.fkCollectionidCollection ?? item.FkCollectionidCollection),
 });

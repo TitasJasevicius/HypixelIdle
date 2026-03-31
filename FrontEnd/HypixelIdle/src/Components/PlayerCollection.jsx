@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { formatDisplayName } from './DisplayNameUtils';
 
 const getAuthHeaders = () => {
 	const accessToken = localStorage.getItem('accessToken');
@@ -22,7 +23,7 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 		error: '',
 	});
 	const lastProcessedTickRef = useRef(progressTick);
-	const normalizedItemName = typeof itemName === 'string' ? itemName.trim() : '';
+	const normalizedItemName = formatDisplayName(typeof itemName === 'string' ? itemName.trim() : '');
 	const normalizedCollectionId = Number.isInteger(collectionId) ? collectionId : null;
 
 	useEffect(() => {
@@ -61,7 +62,7 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 
 					const collection = collectionResponse.data ?? null;
 					resolvedCollectionId = collection?.idCollection ?? collection?.IdCollection ?? null;
-					resolvedCollectionName = collection?.name ?? collection?.Name ?? normalizedItemName;
+					resolvedCollectionName = formatDisplayName(collection?.name ?? collection?.Name ?? normalizedItemName);
 				}
 
 				if (!resolvedCollectionId) {
@@ -92,7 +93,7 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 
 					setProgress({
 						hasCollection: true,
-						collectionName: resolvedCollectionName || 'Collection',
+						collectionName: formatDisplayName(resolvedCollectionName || 'Collection'),
 						totalCollected,
 						isLoading: false,
 						error: '',
@@ -101,7 +102,7 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 					if (playerCollectionError?.response?.status === 404) {
 						setProgress({
 							hasCollection: true,
-							collectionName: resolvedCollectionName || 'Collection',
+							collectionName: formatDisplayName(resolvedCollectionName || 'Collection'),
 							totalCollected: 0,
 							isLoading: false,
 							error: '',
@@ -165,7 +166,7 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 
 				const updatedProgress = response.data ?? null;
 				const totalCollected = updatedProgress?.totalCollected ?? updatedProgress?.TotalCollected;
-				const collectionName = updatedProgress?.collectionName ?? updatedProgress?.CollectionName ?? normalizedItemName;
+				const collectionName = formatDisplayName(updatedProgress?.collectionName ?? updatedProgress?.CollectionName ?? normalizedItemName);
 
 				if (typeof totalCollected === 'number') {
 					setProgress((prev) => ({

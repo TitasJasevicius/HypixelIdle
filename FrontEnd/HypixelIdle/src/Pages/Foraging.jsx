@@ -1,21 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import MiningBlock from '../Components/MiningBlock';
+import ForagingBlock from '../Components/ForagingBlock';
+import ForagingAppleSpecialEvent, {
+	getRandomAppleOverlayPosition,
+	isForagingAppleEventItem,
+	rollForagingAppleSpawn,
+} from '../Components/ForagingAppleSpecialEvent';
 import Inventory from '../Components/Inventory';
 import PlayerCollection from '../Components/PlayerCollection';
-import MiningHeader from '../Components/MiningHeader';
-import ZoneSelectModal from '../Components/ZoneSelectModal';
-import NodeSelectModal from '../Components/NodeSelectModal';
-import useTitaniumEvent from '../Components/TitaniumEventLogic';
+import ForagingHeader from '../Components/ForagingHeader';
+import ForagingZoneSelectModal from '../Components/ForagingZoneSelectModal';
+import ForagingNodeSelectModal from '../Components/ForagingNodeSelectModal';
 import {
 	BLOCK_TEXTURE_BY_FILE,
 	DEFAULT_BLOCK_HEALTH,
-	MINED_SESSION_STORAGE_KEY,
-	MINING_NODE_TYPE_ID,
-	MINING_SKILL_NAME,
 	getAuthHeaders,
-	getUnlockedNodesStorageKey,
-	loadMinedSessionMap,
 	loadUnlockedNodeMap,
 	normalizeItem,
 	normalizeNode,
@@ -24,23 +23,60 @@ import {
 } from '../Components/MiningUtils';
 import { formatDisplayName } from '../Components/DisplayNameUtils';
 import '../Styles/GlobalStyles.css';
-import '../Styles/MiningStyles.css';
+import '../Styles/ForagingStyles.css';
 
-const TITANIUM_SPAWN_CHANCE = 0.05;
+const FORAGING_NODE_TYPE_ID = 2;
+const FORAGING_SKILL_NAME = 'foraging';
+const FORAGING_SESSION_STORAGE_KEY = 'foragingSessionMinedByOutputItem';
+const FORAGING_FRUIT_COMBO_SESSION_KEY = 'foragingFruitSpecialCombo';
 
-const Mining = () => {
+const getForagingUnlockedNodesStorageKey = (playerId) => `foragingUnlockedNodesByPlayer_${playerId ?? 'guest'}`;
+
+const loadForagingSessionMap = () => {
+	try {
+		const raw = localStorage.getItem(FORAGING_SESSION_STORAGE_KEY);
+		if (!raw) {
+			return {};
+		}
+
+		const parsed = JSON.parse(raw);
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+			return {};
+		}
+
+		return parsed;
+	} catch (error) {
+		console.warn('Failed to parse foraging session map:', error);
+		return {};
+	}
+};
+
+const loadForagingFruitCombo = () => {
+	try {
+		const raw = sessionStorage.getItem(FORAGING_FRUIT_COMBO_SESSION_KEY);
+		const parsed = Number(raw);
+		if (!Number.isFinite(parsed) || parsed < 0) {
+			return 0;
+		}
+
+		return Math.floor(parsed);
+	} catch (error) {
+		console.warn('Failed to parse foraging fruit combo:', error);
+		return 0;
+	}
+};
+
+const Foraging = () => {
 	const [blockHealth, setBlockHealth] = useState(DEFAULT_BLOCK_HEALTH);
-	const [sessionMinedByItem, setSessionMinedByItem] = useState(loadMinedSessionMap);
+	const [sessionMinedByItem, setSessionMinedByItem] = useState(loadForagingSessionMap);
 	const [nodes, setNodes] = useState([]);
 	const [itemsById, setItemsById] = useState({});
 	const [isLoadingNodes, setIsLoadingNodes] = useState(true);
 	const [nodeError, setNodeError] = useState('');
 	const [isLoadingSkill, setIsLoadingSkill] = useState(true);
 	const [skillError, setSkillError] = useState('');
-	const [playerMiningLevel, setPlayerMiningLevel] = useState(0);
+	const [playerForagingLevel, setPlayerForagingLevel] = useState(0);
 	const [purseBalance, setPurseBalance] = useState(0);
-	const [isLoadingPurse, setIsLoadingPurse] = useState(true);
-	const [purseError, setPurseError] = useState('');
 	const [isUnlockingNode, setIsUnlockingNode] = useState(false);
 	const [unlockedNodeMap, setUnlockedNodeMap] = useState({});
 	const [dropError, setDropError] = useState('');
@@ -50,10 +86,13 @@ const Mining = () => {
 	const [selectedNodeId, setSelectedNodeId] = useState(null);
 	const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
 	const [isNodeModalOpen, setIsNodeModalOpen] = useState(false);
+	const [activeAppleItemId, setActiveAppleItemId] = useState(null);
+	const [activeApplePosition, setActiveApplePosition] = useState(null);
+	const [isCollectingApple, setIsCollectingApple] = useState(false);
+	const [fruitSpecialCombo, setFruitSpecialCombo] = useState(loadForagingFruitCombo);
 
 	const playerId = useMemo(() => {
 		const storedPlayerId = localStorage.getItem('playerId');
-
 		if (!storedPlayerId) {
 			return null;
 		}
@@ -62,67 +101,58 @@ const Mining = () => {
 		return Number.isNaN(parsedPlayerId) ? null : parsedPlayerId;
 	}, []);
 
-	const unlockedNodesStorageKey = useMemo(() => getUnlockedNodesStorageKey(playerId), [playerId]);
+	const unlockedNodesStorageKey = useMemo(
+		() => getForagingUnlockedNodesStorageKey(playerId),
+		[playerId]
+	);
 
 	useEffect(() => {
 		setUnlockedNodeMap(loadUnlockedNodeMap(unlockedNodesStorageKey));
 	}, [unlockedNodesStorageKey]);
 
 	useEffect(() => {
-		const fetchMiningData = async () => {
+		const fetchForagingData = async () => {
 			try {
 				setIsLoadingNodes(true);
 				setIsLoadingSkill(true);
-				setIsLoadingPurse(true);
 				setNodeError('');
 				setSkillError('');
-				setPurseError('');
 
 				const requests = [
 					axios.get('http://localhost:5091/api/Node/GetNodes', {
-						headers: {
-							Accept: 'application/json',
-						},
+						headers: { Accept: 'application/json' },
 					}),
 					axios.get('http://localhost:5091/api/Item/GetItems', {
-						headers: {
-							Accept: 'application/json',
-						},
+						headers: { Accept: 'application/json' },
 					}),
 					axios.get('http://localhost:5091/api/Skills/GetSkills', {
-						headers: {
-							Accept: 'application/json',
-						},
+						headers: { Accept: 'application/json' },
 					}),
 				];
 
 				if (playerId) {
 					requests.push(
 						axios.get('http://localhost:5091/api/PlayerSkills/GetPlayerSkills', {
-							params: {
-								playerId,
-							},
+							params: { playerId },
 							headers: {
 								Accept: 'application/json',
 								...getAuthHeaders(),
 							},
 						})
-						);
+					);
 
-						requests.push(
-							axios.get('http://localhost:5091/api/Purse/GetPurse', {
-								params: {
-									playerId,
-								},
-								headers: {
-									Accept: 'application/json',
-									...getAuthHeaders(),
-								},
-							})
+					requests.push(
+						axios.get('http://localhost:5091/api/Purse/GetPurse', {
+							params: { playerId },
+							headers: {
+								Accept: 'application/json',
+								...getAuthHeaders(),
+							},
+						})
 					);
 				}
 
-					const [nodesResponse, itemsResponse, skillsResponse, playerSkillsResponse, purseResponse] = await Promise.all(requests);
+				const [nodesResponse, itemsResponse, skillsResponse, playerSkillsResponse, purseResponse] = await Promise.all(requests);
 
 				const normalizedNodes = Array.isArray(nodesResponse.data)
 					? nodesResponse.data.map(normalizeNode)
@@ -143,66 +173,45 @@ const Mining = () => {
 				setItemsById(itemMap);
 
 				const skills = Array.isArray(skillsResponse?.data) ? skillsResponse.data : [];
-				const miningSkill = skills.find((skill) => {
+				const foragingSkill = skills.find((skill) => {
 					const name = (skill.name ?? skill.Name ?? '').toString().trim().toLowerCase();
-					return name === MINING_SKILL_NAME;
+					return name === FORAGING_SKILL_NAME;
 				});
 
-				const miningSkillId = toNumberOrNull(miningSkill?.idSkills ?? miningSkill?.IdSkills);
+				const foragingSkillId = toNumberOrNull(foragingSkill?.idSkills ?? foragingSkill?.IdSkills);
 				const playerSkills = Array.isArray(playerSkillsResponse?.data) ? playerSkillsResponse.data : [];
-				const playerMiningSkill = miningSkillId != null
-					? playerSkills.find((skill) => toNumberOrNull(skill.fkSkillsidSkills ?? skill.FkSkillsidSkills) === miningSkillId)
+				const playerForagingSkill = foragingSkillId != null
+					? playerSkills.find((skill) => toNumberOrNull(skill.fkSkillsidSkills ?? skill.FkSkillsidSkills) === foragingSkillId)
 					: null;
 
-				setPlayerMiningLevel(toNumberOrNull(playerMiningSkill?.level ?? playerMiningSkill?.Level) ?? 0);
-
+				setPlayerForagingLevel(toNumberOrNull(playerForagingSkill?.level ?? playerForagingSkill?.Level) ?? 0);
 				setPurseBalance(toNumberOrNull(purseResponse?.data?.balance ?? purseResponse?.data?.Balance) ?? 0);
 			} catch (error) {
-				console.error('Failed to load mining nodes:', error);
-				setNodeError('Failed to load mining nodes from API.');
-				setSkillError('Failed to load player mining level.');
-				setPurseError('Failed to load purse balance.');
+				console.error('Failed to load foraging nodes:', error);
+				setNodeError('Failed to load foraging nodes from API.');
+				setSkillError('Failed to load player foraging level.');
 			} finally {
 				setIsLoadingNodes(false);
 				setIsLoadingSkill(false);
-				setIsLoadingPurse(false);
 			}
 		};
 
-		fetchMiningData();
+		fetchForagingData();
 	}, [playerId]);
 
-	const miningTypeNodes = useMemo(
-		() => nodes.filter((node) => node.fkNodetypeidNodeType === MINING_NODE_TYPE_ID),
-		[nodes]
-	);
-
-	const {
-		activeTitaniumNodeId,
-		canSelectNode,
-		handleMinedNode,
-		isActiveTitaniumNode,
-	} = useTitaniumEvent({
-		spawnChance: TITANIUM_SPAWN_CHANCE,
-		miningTypeNodes,
-		itemsById,
-		onSelectZone: setSelectedZone,
-		onSelectNode: setSelectedNodeId,
-		onMessage: setDropError,
-	});
-
-	const miningNodes = useMemo(() => {
-		const enabledNodes = miningTypeNodes.filter((node) => node.isEnabled || node.idNode === activeTitaniumNodeId);
-		return enabledNodes.length ? enabledNodes : miningTypeNodes;
-	}, [miningTypeNodes, activeTitaniumNodeId]);
+	const foragingNodes = useMemo(() => {
+		const enabledNodes = nodes.filter((node) => node.isEnabled);
+		const typedNodes = enabledNodes.filter((node) => node.fkNodetypeidNodeType === FORAGING_NODE_TYPE_ID);
+		return typedNodes.length ? typedNodes : enabledNodes;
+	}, [nodes]);
 
 	const zones = useMemo(() => {
 		const set = new Set();
-		for (const node of miningNodes) {
+		for (const node of foragingNodes) {
 			set.add((node.zone || 'Unzoned').trim());
 		}
 		return [...set].sort((a, b) => a.localeCompare(b));
-	}, [miningNodes]);
+	}, [foragingNodes]);
 
 	useEffect(() => {
 		if (!zones.length) {
@@ -216,21 +225,17 @@ const Mining = () => {
 	}, [zones, selectedZone]);
 
 	const nodesInSelectedZone = useMemo(
-		() => miningNodes.filter((node) => (node.zone || 'Unzoned').trim() === selectedZone),
-		[miningNodes, selectedZone]
+		() => foragingNodes.filter((node) => (node.zone || 'Unzoned').trim() === selectedZone),
+		[foragingNodes, selectedZone]
 	);
 
 	useEffect(() => {
-		if (activeTitaniumNodeId && selectedNodeId === activeTitaniumNodeId) {
-			return;
-		}
-
 		if (!nodesInSelectedZone.length) {
 			setSelectedNodeId(null);
 			return;
 		}
 
-		const levelMetNodes = nodesInSelectedZone.filter((node) => (node.requiredLevel ?? 1) <= playerMiningLevel);
+		const levelMetNodes = nodesInSelectedZone.filter((node) => (node.requiredLevel ?? 1) <= playerForagingLevel);
 		const fullyUnlockedNodes = levelMetNodes.filter((node) => node.isUnlocked || unlockedNodeMap[node.idNode]);
 		const preferredNode = fullyUnlockedNodes[0] ?? null;
 		const selectedNodeIsUnlocked = selectedNodeId
@@ -240,11 +245,11 @@ const Mining = () => {
 		if (!selectedNodeIsUnlocked) {
 			setSelectedNodeId(preferredNode?.idNode ?? null);
 		}
-	}, [nodesInSelectedZone, selectedNodeId, playerMiningLevel, unlockedNodeMap, activeTitaniumNodeId]);
+	}, [nodesInSelectedZone, selectedNodeId, playerForagingLevel, unlockedNodeMap]);
 
 	const selectedNode = useMemo(
-		() => miningTypeNodes.find((node) => node.idNode === selectedNodeId) ?? null,
-		[miningTypeNodes, selectedNodeId]
+		() => foragingNodes.find((node) => node.idNode === selectedNodeId) ?? null,
+		[foragingNodes, selectedNodeId]
 	);
 
 	useEffect(() => {
@@ -290,7 +295,22 @@ const Mining = () => {
 		};
 	}, [nodeItem]);
 
-	const addMinedItemToInventory = async () => {
+	const foragingAppleEventItems = useMemo(
+		() => Object.values(itemsById).filter((item) => isForagingAppleEventItem(item)),
+		[itemsById]
+	);
+
+	const activeAppleItem = useMemo(
+		() => (activeAppleItemId != null ? itemsById[activeAppleItemId] ?? null : null),
+		[activeAppleItemId, itemsById]
+	);
+
+	const activeAppleIcon = useMemo(
+		() => (activeAppleItem ? resolveIconPath(activeAppleItem.icon, BLOCK_TEXTURE_BY_FILE) : ''),
+		[activeAppleItem]
+	);
+
+	const addGatheredItemToInventory = async () => {
 		setDropError('');
 
 		const itemId = selectedNode?.fkOutputitemidItem;
@@ -326,15 +346,15 @@ const Mining = () => {
 						[currentOutputItemId]: (prev[currentOutputItemId] ?? 0) + 1,
 					};
 
-					localStorage.setItem(MINED_SESSION_STORAGE_KEY, JSON.stringify(next));
+					localStorage.setItem(FORAGING_SESSION_STORAGE_KEY, JSON.stringify(next));
 					return next;
 				});
 			}
 			setInventoryRefreshTick((prev) => prev + 1);
 			return true;
 		} catch (error) {
-			console.error('Failed to add mined item to inventory:', error);
-			setDropError('Failed to add mined drop to inventory. It may be full.');
+			console.error('Failed to add gathered item to inventory:', error);
+			setDropError('Failed to add gathered drop to inventory. It may be full.');
 			return false;
 		} finally {
 			setIsSavingDrop(false);
@@ -348,11 +368,11 @@ const Mining = () => {
 
 		const requiredLevel = nodeToUnlock.requiredLevel ?? 1;
 		const unlockPrice = Number(nodeToUnlock.unlockPrice ?? 0);
-		const isLevelMet = requiredLevel <= playerMiningLevel;
+		const isLevelMet = requiredLevel <= playerForagingLevel;
 		const isAlreadyUnlocked = nodeToUnlock.isUnlocked || Boolean(unlockedNodeMap[nodeToUnlock.idNode]);
 
 		if (!isLevelMet) {
-			setDropError(`You need Mining level ${requiredLevel} first.`);
+			setDropError(`You need Foraging level ${requiredLevel} first.`);
 			return false;
 		}
 
@@ -403,14 +423,14 @@ const Mining = () => {
 		}
 	};
 
-	const mineBlock = async () => {
+	const gatherBlock = async () => {
 		if (isSavingDrop || !selectedNode) {
 			return;
 		}
 
 		if (!isSelectedNodeUnlocked) {
 			if (!isSelectedNodeLevelMet) {
-				setDropError(`Node locked. Requires Mining level ${selectedNodeRequiredLevel}.`);
+				setDropError(`Node locked. Requires Foraging level ${selectedNodeRequiredLevel}.`);
 			} else {
 				setDropError(`Node locked. Unlock costs ${selectedNodeUnlockPrice.toFixed(2)} coins.`);
 			}
@@ -424,19 +444,66 @@ const Mining = () => {
 			return;
 		}
 
-		const minedNode = selectedNode;
 		setBlockHealth(maxHealth);
-		const didMine = await addMinedItemToInventory();
-		if (!didMine) {
+		const didGather = await addGatheredItemToInventory();
+		if (!didGather) {
 			return;
 		}
 
-		handleMinedNode(minedNode);
+		if (!activeAppleItemId) {
+			const spawnedApple = rollForagingAppleSpawn(foragingAppleEventItems);
+			if (spawnedApple?.idItem != null) {
+				setActiveAppleItemId(spawnedApple.idItem);
+				setActiveApplePosition(getRandomAppleOverlayPosition());
+				setDropError(`${formatDisplayName(spawnedApple.name)} spawned. Click it to collect.`);
+			}
+		}
 	};
 
-	const selectedNodeDisplay = selectedNode
-		? `${formatDisplayName(nodeItem?.name ?? 'Unknown Node')} -> ${formatDisplayName(outputItem?.name ?? 'Unknown Drop')}`
-		: 'No node selected';
+	const resolveFruitSkillCheck = async ({ quantity, hitZone, isSpecialHit, nextCombo, displayName }) => {
+		if (!activeAppleItem || !playerId || isCollectingApple) {
+			return;
+		}
+
+		try {
+			setIsCollectingApple(true);
+			setDropError('');
+
+			if (quantity > 0) {
+				await axios.post('http://localhost:5091/api/Inventory/AddItemToInventory', {
+					playerId,
+					itemId: activeAppleItem.idItem,
+					quantity,
+				}, {
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
+				});
+
+				setInventoryRefreshTick((prev) => prev + 1);
+			}
+
+			setFruitSpecialCombo(nextCombo);
+			sessionStorage.setItem(FORAGING_FRUIT_COMBO_SESSION_KEY, String(nextCombo));
+
+			if (isSpecialHit) {
+				setDropError(`Green zone! Collected ${quantity} ${displayName}. Combo ${nextCombo}.`);
+			} else if (hitZone === 'regular') {
+				setDropError(`Collected ${quantity} ${displayName}. Combo reset.`);
+			} else {
+				setDropError(`Collected ${quantity} ${displayName}. Combo ${nextCombo}.`);
+			}
+
+			setActiveAppleItemId(null);
+			setActiveApplePosition(null);
+		} catch (error) {
+			console.error('Failed to collect spawned apple:', error);
+			setDropError('Failed to collect apple.');
+		} finally {
+			setIsCollectingApple(false);
+		}
+	};
 
 	const selectedNodeRequiredLevel = selectedNode?.requiredLevel ?? 1;
 	const isNodeUnlockedByPrice = (node) => {
@@ -452,12 +519,9 @@ const Mining = () => {
 	};
 
 	const isSelectedNodeUnlockedByPrice = selectedNode ? isNodeUnlockedByPrice(selectedNode) : false;
-	const isSelectedNodeLevelMet = selectedNode ? selectedNodeRequiredLevel <= playerMiningLevel : false;
-	const isSelectedTitaniumEventNode = selectedNode ? isActiveTitaniumNode(selectedNode.idNode) : false;
-	const isSelectedNodeUnlocked = selectedNode
-		? (isSelectedNodeLevelMet && (isSelectedNodeUnlockedByPrice || isSelectedTitaniumEventNode))
-		: false;
- 	const selectedNodeUnlockPrice = selectedNode?.unlockPrice ?? 0;
+	const isSelectedNodeLevelMet = selectedNode ? selectedNodeRequiredLevel <= playerForagingLevel : false;
+	const isSelectedNodeUnlocked = selectedNode ? (isSelectedNodeLevelMet && isSelectedNodeUnlockedByPrice) : false;
+	const selectedNodeUnlockPrice = selectedNode?.unlockPrice ?? 0;
 
 	const selectedNodeButtonLabel = selectedNode
 		? `${formatDisplayName(nodeItem?.name ?? 'Unknown')} -> ${formatDisplayName(outputItem?.name ?? 'Unknown')}`
@@ -469,10 +533,6 @@ const Mining = () => {
 	};
 
 	const handleSelectNode = async (node) => {
-		if (!canSelectNode(node.idNode)) {
-			return;
-		}
-
 		const isUnlocked = node.isUnlocked || Boolean(unlockedNodeMap[node.idNode]);
 
 		if (!isUnlocked) {
@@ -487,8 +547,10 @@ const Mining = () => {
 	};
 
 	return (
-		<section className="mining-content">
-			<MiningHeader
+		<section className="foraging-content">
+			<ForagingHeader
+				title="Foraging Nodes"
+				skillLabel="Foraging"
 				selectedZone={selectedZone}
 				onOpenZone={() => setIsZoneModalOpen(true)}
 				hasZones={zones.length > 0}
@@ -500,59 +562,69 @@ const Mining = () => {
 				nodeError={nodeError}
 				skillError={skillError}
 				dropError={dropError}
-				playerMiningLevel={playerMiningLevel}
+				playerForagingLevel={playerForagingLevel}
 				selectedNode={selectedNode}
 				isSelectedNodeUnlocked={isSelectedNodeUnlocked}
 				selectedNodeRequiredLevel={selectedNodeRequiredLevel}
 			/>
 
-				<MiningBlock
-					label={itemName}
-					currentHealth={blockHealth}
-					maxHealth={selectedNode?.nodeHealth ?? DEFAULT_BLOCK_HEALTH}
-					onMine={mineBlock}
-					ariaLabel={`Mine ${itemName} block`}
-					blockClassName="mining-block--cobblestone"
-					blockStyle={nodeTextureStyle}
-					isDisabled={!selectedNode || isSavingDrop}
-					helperText={
-						!selectedNode
-							? 'Select a node first.'
-							: (!isSelectedNodeLevelMet
-								? `Locked until Mining level ${selectedNodeRequiredLevel}.`
-								: (isSelectedNodeUnlocked ? '' : `Unlock this node for ${selectedNodeUnlockPrice.toFixed(2)} coins.`))
-					}
-				/>
-
-				<section className="mining-stats" aria-label="Mining stats">
-					<article>
-						<h2>{itemName} Mined This Session</h2>
-						<p>{currentSessionMined}</p>
-					</article>
-					<PlayerCollection
-						playerId={playerId}
-						itemName={itemName}
-						collectionId={collectionId}
-						progressTick={inventoryRefreshTick}
+			<ForagingBlock
+				label={itemName}
+				currentHealth={blockHealth}
+				maxHealth={selectedNode?.nodeHealth ?? DEFAULT_BLOCK_HEALTH}
+				onMine={gatherBlock}
+				ariaLabel={`Gather ${itemName} block`}
+				blockClassName="foraging-block--cobblestone"
+				blockStyle={nodeTextureStyle}
+				isDisabled={!selectedNode || isSavingDrop}
+				overlayContent={
+					<ForagingAppleSpecialEvent
+						appleItem={activeAppleItem}
+						appleIcon={activeAppleIcon}
+						position={activeApplePosition}
+						comboStreak={fruitSpecialCombo}
+						onResolve={resolveFruitSkillCheck}
+						isCollecting={isCollectingApple}
 					/>
-				</section>
+				}
+				helperText={
+					!selectedNode
+						? 'Select a node first.'
+						: (!isSelectedNodeLevelMet
+							? `Locked until Foraging level ${selectedNodeRequiredLevel}.`
+							: (isSelectedNodeUnlocked ? '' : `Unlock this node for ${selectedNodeUnlockPrice.toFixed(2)} coins.`))
+				}
+			/>
 
-				<Inventory playerId={playerId} refreshKey={inventoryRefreshTick} />
+			<section className="foraging-stats" aria-label="Foraging stats">
+				<article>
+					<h2>{itemName} Gathered This Session</h2>
+					<p>{currentSessionMined}</p>
+				</article>
+				<PlayerCollection
+					playerId={playerId}
+					itemName={itemName}
+					collectionId={collectionId}
+					progressTick={inventoryRefreshTick}
+				/>
+			</section>
 
-			<ZoneSelectModal
+			<Inventory playerId={playerId} refreshKey={inventoryRefreshTick} />
+
+			<ForagingZoneSelectModal
 				isOpen={isZoneModalOpen}
 				zones={zones}
-				miningNodes={miningNodes}
+				foragingNodes={foragingNodes}
 				selectedZone={selectedZone}
 				onSelectZone={handleSelectZone}
 				onClose={() => setIsZoneModalOpen(false)}
 			/>
 
-			<NodeSelectModal
+			<ForagingNodeSelectModal
 				isOpen={isNodeModalOpen}
 				nodes={nodesInSelectedZone}
 				itemsById={itemsById}
-				playerMiningLevel={playerMiningLevel}
+				playerForagingLevel={playerForagingLevel}
 				unlockedNodeMap={unlockedNodeMap}
 				selectedNodeId={selectedNodeId}
 				isUnlockingNode={isUnlockingNode}
@@ -563,4 +635,4 @@ const Mining = () => {
 	);
 };
 
-export default Mining;
+export default Foraging;

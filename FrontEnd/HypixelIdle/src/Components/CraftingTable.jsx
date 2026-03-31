@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import Inventory from './Inventory';
+import { formatDisplayName } from './DisplayNameUtils';
 import '../Styles/CraftingTableStyles.css';
 
 /** @type {Record<string, string>} */
@@ -69,7 +70,7 @@ const normalizeSlot = (slot) => ({
 	slotIndex: slot.slotIndex ?? slot.SlotIndex,
 	quantity: slot.quantity ?? slot.Quantity ?? 0,
 	fkItemidItem: slot.fkItemidItem ?? slot.FkItemidItem ?? null,
-	itemName: slot.itemName ?? slot.ItemName ?? '',
+	itemName: formatDisplayName(slot.itemName ?? slot.ItemName ?? ''),
 	itemIcon: slot.itemIcon ?? slot.ItemIcon ?? '',
 });
 
@@ -257,7 +258,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 		return recipes.filter((recipe) => {
 			const recipeItemId = recipe.fkItemidItem ?? recipe.FkItemidItem;
 			const recipeItem = recipeItems[recipeItemId];
-			const itemName = recipeItem?.name ?? recipeItem?.Name ?? `Item #${recipeItemId}`;
+			const itemName = formatDisplayName(recipeItem?.name ?? recipeItem?.Name ?? `Item #${recipeItemId}`);
 			return itemName.toLowerCase().includes(query);
 		});
 	}, [recipes, recipeItems, searchQuery]);
@@ -368,6 +369,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 							{craftingGrid.map((itemId, index) => {
 								const item = itemId ? recipeItems[itemId] : null;
 								const slotIcon = withFallbackIcon(item?.icon ?? item?.Icon);
+								const slotItemName = formatDisplayName(item?.name ?? item?.Name ?? `Item #${itemId}`);
 
 								return (
 									<button
@@ -375,11 +377,11 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 										key={index}
 										className="grid-slot"
 										onClick={() => handleGridItemClick(index)}
-										title={itemId ? `${item?.name ?? item?.Name ?? `Item #${itemId}`}` : 'Click to place selected inventory item'}
+										title={itemId ? slotItemName : 'Click to place selected inventory item'}
 									>
 										{itemId ? (
 											<div className="slot-item">
-												<img src={slotIcon} alt={item?.name ?? item?.Name ?? `Item ${itemId}`} />
+												<img src={slotIcon} alt={slotItemName} />
 											</div>
 										) : null}
 									</button>
@@ -392,7 +394,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 						<div className="result-slot">
 							{matchedRecipe ? (
 								<div className="matched-result">
-									<img src={resultIcon} alt={resultItem?.name ?? resultItem?.Name ?? 'Result'} />
+									<img src={resultIcon} alt={formatDisplayName(resultItem?.name ?? resultItem?.Name ?? 'Result')} />
 									{resultQuantity > 1 ? <span className="result-qty">{resultQuantity}</span> : null}
 								</div>
 							) : (
@@ -435,6 +437,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 								const recipeItem = recipeItems[recipeItemId];
 								const recipeIcon = withFallbackIcon(recipeItem?.icon ?? recipeItem?.Icon);
 								const recipeResultQty = recipe.resultQuantity ?? recipe.ResultQuantity ?? 1;
+								const recipeName = formatDisplayName(recipeItem?.name ?? recipeItem?.Name ?? 'Unknown');
 
 								return (
 									<div key={recipe.idRecipes ?? recipe.IdRecipes} className="recipe-card">
@@ -448,7 +451,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 														{ingredientIcon ? (
 															<img 
 																src={ingredientIcon} 
-																alt={ingredientItem?.name ?? ingredientItem?.Name ?? `Item ${itemId}`}
+																alt={formatDisplayName(ingredientItem?.name ?? ingredientItem?.Name ?? `Item ${itemId}`)}
 															/>
 														) : null}
 													</div>
@@ -457,7 +460,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 										</div>
 										<div className="recipe-arrow">{'>'}</div>
 										<div className="recipe-result-preview">
-											<img src={recipeIcon} alt={recipeItem?.name ?? recipeItem?.Name ?? 'Result'} title={`${recipeItem?.name ?? recipeItem?.Name ?? 'Unknown'} x${recipeResultQty}`} />
+											<img src={recipeIcon} alt={recipeName || 'Result'} title={`${recipeName || 'Unknown'} x${recipeResultQty}`} />
 											{recipeResultQty > 1 ? <span className="preview-qty">{recipeResultQty}</span> : null}
 										</div>
 									</div>
