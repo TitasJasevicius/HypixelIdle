@@ -26,6 +26,18 @@
   box-shadow: 0 14px 40px rgba(3, 9, 15, 0.45);
 }
 
+.mining-page-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 52rem) minmax(220px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.mining-selling-panel {
+  min-height: 0;
+}
+
 .mining-header h1 {
   margin: 0.3rem 0 0.7rem;
 }
@@ -285,5 +297,17 @@
 
   .mining-stats {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1220px) {
+  .mining-page-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mining-selling-panel {
+    max-width: 52rem;
+    width: 100%;
+    margin: 0 auto;
   }
 }

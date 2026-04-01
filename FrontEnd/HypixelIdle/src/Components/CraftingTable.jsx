@@ -112,7 +112,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 				setIsLoadingRecipes(true);
 				setRecipesError('');
 
-				// Fetch all items first
+				
 				const allItemsResponse = await axios.get('http://localhost:5091/api/Item/GetItems', {
 					headers: {
 						Accept: 'application/json',
@@ -123,7 +123,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 				const allItems = Array.isArray(allItemsResponse.data) ? allItemsResponse.data : [];
 				const itemsMap = {};
 
-				// Build map of item ID to item data
+				
 				for (const item of allItems) {
 					const itemId = item.idItem ?? item.IdItem;
 					if (itemId) {

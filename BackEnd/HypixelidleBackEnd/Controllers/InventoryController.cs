@@ -38,7 +38,8 @@ namespace HypixelidleBackEnd.Controllers
                     Quantity = i.Quantity,
                     FkItemidItem = i.FkItemidItem,
                     ItemName = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.Name : null,
-                    ItemIcon = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.Icon : null
+                    ItemIcon = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.Icon : null,
+                    SellValue = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.SellValue : null
                 })
                 .ToListAsync();
 
@@ -261,6 +262,8 @@ namespace HypixelidleBackEnd.Controllers
             public string? ItemName { get; set; }
 
             public string? ItemIcon { get; set; }
+
+            public int? SellValue { get; set; }
         }
 
     }

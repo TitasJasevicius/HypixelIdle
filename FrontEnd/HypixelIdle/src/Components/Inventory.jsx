@@ -6,6 +6,7 @@ import '../Styles/InventoryStyles.css';
 
 const HOTBAR_SLOTS = 9;
 const TOTAL_SLOTS = 36;
+const SELLING_SELECTED_ITEM_STORAGE_KEY = 'sellingSelectedInventoryItem';
 
 /** @type {Record<string, string>} */
 const BLOCK_TEXTURES = import.meta.glob('../Assets/Blocks/*.{png,jpg,jpeg,webp,gif,svg}', {
@@ -42,6 +43,7 @@ const normalizeSlot = (slot) => ({
 	fkItemidItem: slot.fkItemidItem ?? slot.FkItemidItem ?? null,
 	itemName: formatDisplayName(slot.itemName ?? slot.ItemName ?? ''),
 	itemIcon: slot.itemIcon ?? slot.ItemIcon ?? '',
+	sellValue: slot.sellValue ?? slot.SellValue ?? 0,
 });
 
 const resolveIconPath = (iconPath) => {
@@ -146,6 +148,29 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 	const hotbarSlots = useMemo(() => fullSlotList.slice(0, HOTBAR_SLOTS), [fullSlotList]);
 	const mainInventorySlots = useMemo(() => fullSlotList.slice(HOTBAR_SLOTS), [fullSlotList]);
 
+	const publishSellingSelection = (slot) => {
+		const hasItem = slot && slot.idPlayerInventorySlots != null && slot.quantity > 0 && slot.fkItemidItem != null;
+		const payload = hasItem
+			? {
+				idPlayerInventorySlots: slot.idPlayerInventorySlots,
+				slotIndex: slot.slotIndex,
+				quantity: Number(slot.quantity ?? 0),
+				fkItemidItem: slot.fkItemidItem,
+				itemName: slot.itemName ?? '',
+				itemIcon: slot.itemIcon ?? '',
+				sellValue: Number(slot.sellValue ?? 0),
+			}
+			: null;
+
+		if (payload) {
+			localStorage.setItem(SELLING_SELECTED_ITEM_STORAGE_KEY, JSON.stringify(payload));
+		} else {
+			localStorage.removeItem(SELLING_SELECTED_ITEM_STORAGE_KEY);
+		}
+
+		window.dispatchEvent(new CustomEvent('selling-item-selected', { detail: payload }));
+	};
+
 	const renderSlot = (slot, index, isHotbar = false) => {
 		const isActiveHotbar = isHotbar && index === activeHotbarIndex;
 		const isLocked = slot.idPlayerInventorySlots == null;
@@ -161,7 +186,18 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 				key={`slot-${slot.slotIndex}`}
 				type="button"
 				className={`inventory-slot ${isActiveHotbar ? 'inventory-slot-active' : ''} ${isLocked ? 'inventory-slot-locked' : ''}`.trim()}
-				onClick={isHotbar && !isLocked ? () => setActiveHotbarIndex(index) : undefined}
+				onClick={() => {
+					if (isLocked) {
+						publishSellingSelection(null);
+						return;
+					}
+
+					if (isHotbar) {
+						setActiveHotbarIndex(index);
+					}
+
+					publishSellingSelection(hasItem ? slot : null);
+				}}
 				aria-label={`Inventory slot ${slot.slotIndex}`}
 				disabled={isLocked}
 			>

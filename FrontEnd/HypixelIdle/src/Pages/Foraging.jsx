@@ -11,6 +11,7 @@ import PlayerCollection from '../Components/PlayerCollection';
 import ForagingHeader from '../Components/ForagingHeader';
 import ForagingZoneSelectModal from '../Components/ForagingZoneSelectModal';
 import ForagingNodeSelectModal from '../Components/ForagingNodeSelectModal';
+import SellingTab from '../Components/SellingTab';
 import {
 	BLOCK_TEXTURE_BY_FILE,
 	DEFAULT_BLOCK_HEALTH,
@@ -547,91 +548,100 @@ const Foraging = () => {
 	};
 
 	return (
-		<section className="foraging-content">
-			<ForagingHeader
-				title="Foraging Nodes"
-				skillLabel="Foraging"
-				selectedZone={selectedZone}
-				onOpenZone={() => setIsZoneModalOpen(true)}
-				hasZones={zones.length > 0}
-				onOpenNode={() => setIsNodeModalOpen(true)}
-				hasNodesInZone={nodesInSelectedZone.length > 0}
-				selectedNodeButtonLabel={selectedNodeButtonLabel}
-				isLoadingNodes={isLoadingNodes}
-				isLoadingSkill={isLoadingSkill}
-				nodeError={nodeError}
-				skillError={skillError}
-				dropError={dropError}
-				playerForagingLevel={playerForagingLevel}
-				selectedNode={selectedNode}
-				isSelectedNodeUnlocked={isSelectedNodeUnlocked}
-				selectedNodeRequiredLevel={selectedNodeRequiredLevel}
-			/>
+		<div className="foraging-page-layout">
+			<section className="foraging-content">
+				<ForagingHeader
+					title="Foraging Nodes"
+					skillLabel="Foraging"
+					selectedZone={selectedZone}
+					onOpenZone={() => setIsZoneModalOpen(true)}
+					hasZones={zones.length > 0}
+					onOpenNode={() => setIsNodeModalOpen(true)}
+					hasNodesInZone={nodesInSelectedZone.length > 0}
+					selectedNodeButtonLabel={selectedNodeButtonLabel}
+					isLoadingNodes={isLoadingNodes}
+					isLoadingSkill={isLoadingSkill}
+					nodeError={nodeError}
+					skillError={skillError}
+					dropError={dropError}
+					playerForagingLevel={playerForagingLevel}
+					selectedNode={selectedNode}
+					isSelectedNodeUnlocked={isSelectedNodeUnlocked}
+					selectedNodeRequiredLevel={selectedNodeRequiredLevel}
+				/>
 
-			<ForagingBlock
-				label={itemName}
-				currentHealth={blockHealth}
-				maxHealth={selectedNode?.nodeHealth ?? DEFAULT_BLOCK_HEALTH}
-				onMine={gatherBlock}
-				ariaLabel={`Gather ${itemName} block`}
-				blockClassName="foraging-block--cobblestone"
-				blockStyle={nodeTextureStyle}
-				isDisabled={!selectedNode || isSavingDrop}
-				overlayContent={
-					<ForagingAppleSpecialEvent
-						appleItem={activeAppleItem}
-						appleIcon={activeAppleIcon}
-						position={activeApplePosition}
-						comboStreak={fruitSpecialCombo}
-						onResolve={resolveFruitSkillCheck}
-						isCollecting={isCollectingApple}
+				<ForagingBlock
+					label={itemName}
+					currentHealth={blockHealth}
+					maxHealth={selectedNode?.nodeHealth ?? DEFAULT_BLOCK_HEALTH}
+					onMine={gatherBlock}
+					ariaLabel={`Gather ${itemName} block`}
+					blockClassName="foraging-block--cobblestone"
+					blockStyle={nodeTextureStyle}
+					isDisabled={!selectedNode || isSavingDrop}
+					overlayContent={
+						<ForagingAppleSpecialEvent
+							appleItem={activeAppleItem}
+							appleIcon={activeAppleIcon}
+							position={activeApplePosition}
+							comboStreak={fruitSpecialCombo}
+							onResolve={resolveFruitSkillCheck}
+							isCollecting={isCollectingApple}
+						/>
+					}
+					helperText={
+						!selectedNode
+							? 'Select a node first.'
+							: (!isSelectedNodeLevelMet
+								? `Locked until Foraging level ${selectedNodeRequiredLevel}.`
+								: (isSelectedNodeUnlocked ? '' : `Unlock this node for ${selectedNodeUnlockPrice.toFixed(2)} coins.`))
+					}
+				/>
+
+				<section className="foraging-stats" aria-label="Foraging stats">
+					<article>
+						<h2>{itemName} Gathered This Session</h2>
+						<p>{currentSessionMined}</p>
+					</article>
+					<PlayerCollection
+						playerId={playerId}
+						itemName={itemName}
+						collectionId={collectionId}
+						progressTick={inventoryRefreshTick}
 					/>
-				}
-				helperText={
-					!selectedNode
-						? 'Select a node first.'
-						: (!isSelectedNodeLevelMet
-							? `Locked until Foraging level ${selectedNodeRequiredLevel}.`
-							: (isSelectedNodeUnlocked ? '' : `Unlock this node for ${selectedNodeUnlockPrice.toFixed(2)} coins.`))
-				}
-			/>
+				</section>
 
-			<section className="foraging-stats" aria-label="Foraging stats">
-				<article>
-					<h2>{itemName} Gathered This Session</h2>
-					<p>{currentSessionMined}</p>
-				</article>
-				<PlayerCollection
-					playerId={playerId}
-					itemName={itemName}
-					collectionId={collectionId}
-					progressTick={inventoryRefreshTick}
+				<Inventory playerId={playerId} refreshKey={inventoryRefreshTick} />
+
+				<ForagingZoneSelectModal
+					isOpen={isZoneModalOpen}
+					zones={zones}
+					foragingNodes={foragingNodes}
+					selectedZone={selectedZone}
+					onSelectZone={handleSelectZone}
+					onClose={() => setIsZoneModalOpen(false)}
+				/>
+
+				<ForagingNodeSelectModal
+					isOpen={isNodeModalOpen}
+					nodes={nodesInSelectedZone}
+					itemsById={itemsById}
+					playerForagingLevel={playerForagingLevel}
+					unlockedNodeMap={unlockedNodeMap}
+					selectedNodeId={selectedNodeId}
+					isUnlockingNode={isUnlockingNode}
+					onSelectNode={handleSelectNode}
+					onClose={() => setIsNodeModalOpen(false)}
 				/>
 			</section>
 
-			<Inventory playerId={playerId} refreshKey={inventoryRefreshTick} />
-
-			<ForagingZoneSelectModal
-				isOpen={isZoneModalOpen}
-				zones={zones}
-				foragingNodes={foragingNodes}
-				selectedZone={selectedZone}
-				onSelectZone={handleSelectZone}
-				onClose={() => setIsZoneModalOpen(false)}
-			/>
-
-			<ForagingNodeSelectModal
-				isOpen={isNodeModalOpen}
-				nodes={nodesInSelectedZone}
-				itemsById={itemsById}
-				playerForagingLevel={playerForagingLevel}
-				unlockedNodeMap={unlockedNodeMap}
-				selectedNodeId={selectedNodeId}
-				isUnlockingNode={isUnlockingNode}
-				onSelectNode={handleSelectNode}
-				onClose={() => setIsNodeModalOpen(false)}
-			/>
-		</section>
+			<aside className="foraging-selling-panel" aria-label="Sell inventory items">
+				<SellingTab
+					playerId={playerId}
+					refreshInventory={() => setInventoryRefreshTick((prev) => prev + 1)}
+				/>
+			</aside>
+		</div>
 	);
 };
 

@@ -6,6 +6,7 @@ import PlayerCollection from '../Components/PlayerCollection';
 import MiningHeader from '../Components/MiningHeader';
 import ZoneSelectModal from '../Components/ZoneSelectModal';
 import NodeSelectModal from '../Components/NodeSelectModal';
+import SellingTab from '../Components/SellingTab';
 import useTitaniumEvent from '../Components/TitaniumEventLogic';
 import {
 	BLOCK_TEXTURE_BY_FILE,
@@ -487,24 +488,25 @@ const Mining = () => {
 	};
 
 	return (
-		<section className="mining-content">
-			<MiningHeader
-				selectedZone={selectedZone}
-				onOpenZone={() => setIsZoneModalOpen(true)}
-				hasZones={zones.length > 0}
-				onOpenNode={() => setIsNodeModalOpen(true)}
-				hasNodesInZone={nodesInSelectedZone.length > 0}
-				selectedNodeButtonLabel={selectedNodeButtonLabel}
-				isLoadingNodes={isLoadingNodes}
-				isLoadingSkill={isLoadingSkill}
-				nodeError={nodeError}
-				skillError={skillError}
-				dropError={dropError}
-				playerMiningLevel={playerMiningLevel}
-				selectedNode={selectedNode}
-				isSelectedNodeUnlocked={isSelectedNodeUnlocked}
-				selectedNodeRequiredLevel={selectedNodeRequiredLevel}
-			/>
+		<div className="mining-page-layout">
+			<section className="mining-content">
+				<MiningHeader
+					selectedZone={selectedZone}
+					onOpenZone={() => setIsZoneModalOpen(true)}
+					hasZones={zones.length > 0}
+					onOpenNode={() => setIsNodeModalOpen(true)}
+					hasNodesInZone={nodesInSelectedZone.length > 0}
+					selectedNodeButtonLabel={selectedNodeButtonLabel}
+					isLoadingNodes={isLoadingNodes}
+					isLoadingSkill={isLoadingSkill}
+					nodeError={nodeError}
+					skillError={skillError}
+					dropError={dropError}
+					playerMiningLevel={playerMiningLevel}
+					selectedNode={selectedNode}
+					isSelectedNodeUnlocked={isSelectedNodeUnlocked}
+					selectedNodeRequiredLevel={selectedNodeRequiredLevel}
+				/>
 
 				<MiningBlock
 					label={itemName}
@@ -539,27 +541,35 @@ const Mining = () => {
 
 				<Inventory playerId={playerId} refreshKey={inventoryRefreshTick} />
 
-			<ZoneSelectModal
-				isOpen={isZoneModalOpen}
-				zones={zones}
-				miningNodes={miningNodes}
-				selectedZone={selectedZone}
-				onSelectZone={handleSelectZone}
-				onClose={() => setIsZoneModalOpen(false)}
-			/>
+				<ZoneSelectModal
+					isOpen={isZoneModalOpen}
+					zones={zones}
+					miningNodes={miningNodes}
+					selectedZone={selectedZone}
+					onSelectZone={handleSelectZone}
+					onClose={() => setIsZoneModalOpen(false)}
+				/>
 
-			<NodeSelectModal
-				isOpen={isNodeModalOpen}
-				nodes={nodesInSelectedZone}
-				itemsById={itemsById}
-				playerMiningLevel={playerMiningLevel}
-				unlockedNodeMap={unlockedNodeMap}
-				selectedNodeId={selectedNodeId}
-				isUnlockingNode={isUnlockingNode}
-				onSelectNode={handleSelectNode}
-				onClose={() => setIsNodeModalOpen(false)}
-			/>
-		</section>
+				<NodeSelectModal
+					isOpen={isNodeModalOpen}
+					nodes={nodesInSelectedZone}
+					itemsById={itemsById}
+					playerMiningLevel={playerMiningLevel}
+					unlockedNodeMap={unlockedNodeMap}
+					selectedNodeId={selectedNodeId}
+					isUnlockingNode={isUnlockingNode}
+					onSelectNode={handleSelectNode}
+					onClose={() => setIsNodeModalOpen(false)}
+				/>
+			</section>
+
+			<aside className="mining-selling-panel" aria-label="Sell inventory items">
+				<SellingTab
+					playerId={playerId}
+					refreshInventory={() => setInventoryRefreshTick((prev) => prev + 1)}
+				/>
+			</aside>
+		</div>
 	);
 };
 

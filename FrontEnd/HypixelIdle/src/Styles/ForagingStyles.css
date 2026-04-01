@@ -26,6 +26,18 @@
   box-shadow: 0 14px 40px rgba(3, 9, 15, 0.45);
 }
 
+.foraging-page-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 52rem) minmax(220px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.foraging-selling-panel {
+  min-height: 0;
+}
+
 .foraging-header h1 {
   margin: 0.3rem 0 0.7rem;
 }
@@ -422,5 +434,17 @@
   .foraging-skill-check-ring {
     width: 190px;
     height: 190px;
+  }
+}
+
+@media (max-width: 1220px) {
+  .foraging-page-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .foraging-selling-panel {
+    max-width: 52rem;
+    width: 100%;
+    margin: 0 auto;
   }
 }

@@ -1,0 +1,112 @@
+.selling-tab {
+	padding: 0.85rem;
+	border: 1px solid rgba(120, 200, 255, 0.22);
+	border-radius: 0.8rem;
+	background: rgba(8, 17, 25, 0.78);
+	display: grid;
+	gap: 0.65rem;
+}
+
+.selling-title {
+	margin: 0;
+	font-size: 1rem;
+	color: #dff1ff;
+}
+
+.selling-error {
+	margin: 0;
+	font-size: 0.88rem;
+	color: #ff8f8f;
+}
+
+.selling-slot-wrap {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 0.75rem;
+	align-items: center;
+}
+
+.selling-target-slot,
+.selling-source-slot {
+	position: relative;
+	width: 58px;
+	height: 58px;
+	border-radius: 0.45rem;
+	border: 1px solid rgba(120, 200, 255, 0.35);
+	background: rgba(10, 24, 36, 0.95);
+	cursor: pointer;
+	display: grid;
+	place-items: center;
+	padding: 0;
+}
+
+.selling-target-slot.filled {
+	border-color: rgba(142, 227, 140, 0.65);
+}
+
+.selling-target-slot:disabled,
+.selling-source-slot:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.selling-slot-placeholder {
+	font-size: 0.68rem;
+	color: #a8c0d8;
+}
+
+.selling-slot-qty {
+	position: absolute;
+	right: 0.2rem;
+	bottom: 0.18rem;
+	font-size: 0.72rem;
+	font-weight: 700;
+	color: #dff1ff;
+	text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
+}
+
+.selling-item-icon {
+	width: 36px;
+	height: 36px;
+	object-fit: contain;
+	image-rendering: pixelated;
+}
+
+.selling-slot-meta p {
+	margin: 0;
+	font-size: 0.84rem;
+	color: #a8c0d8;
+}
+
+.selling-confirm-button {
+	border: 1px solid rgba(142, 227, 140, 0.6);
+	background: rgba(28, 62, 39, 0.9);
+	color: #ddffd8;
+	padding: 0.42rem 0.65rem;
+	border-radius: 0.5rem;
+	cursor: pointer;
+	font-weight: 700;
+}
+
+.selling-confirm-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.selling-loading,
+.selling-empty {
+	margin: 0;
+	font-size: 0.82rem;
+	color: #a8c0d8;
+}
+
+.selling-inventory-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+	gap: 0.45rem;
+}
+
+.selling-source-slot.active {
+	border-color: rgba(120, 200, 255, 0.9);
+	box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.35) inset;
+}

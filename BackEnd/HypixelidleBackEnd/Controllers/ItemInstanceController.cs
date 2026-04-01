@@ -81,5 +81,43 @@ namespace HypixelidleBackEnd.Controllers
             return NoContent();
         }
 
+        [HttpDelete]
+        [AllowAnonymous]
+        [Route("RemoveItemInstanceFromInventory")]
+        public async Task<ActionResult> RemoveItemInstanceFromInventory(int itemInstanceId, int playerId)
+        {
+            var itemInstance = await _context.Iteminstances
+                .Include(i => i.FkItemidItemNavigation)
+                .Include(i => i.FkPlayerInventorySlotsidPlayerInventorySlotsNavigation)
+                .FirstOrDefaultAsync(i => i.IdItemInstance == itemInstanceId);
+
+            if (itemInstance == null)
+                return NotFound("Item instance not found.");
+
+            if (itemInstance.FkPlayerInventorySlotsidPlayerInventorySlots == null)
+                return BadRequest("Item instance is not in a player inventory slot.");
+
+            var inventorySlot = itemInstance.FkPlayerInventorySlotsidPlayerInventorySlotsNavigation;
+            if (inventorySlot?.FkPlayeridPlayer != playerId)
+                return Unauthorized("Item does not belong to this player.");
+
+            var item = itemInstance.FkItemidItemNavigation;
+            if (item == null || !item.SellValue.HasValue)
+                return BadRequest("Item cannot be sold.");
+
+            var sellValue = item.SellValue.Value;
+
+            var purse = await _context.Purses.FirstOrDefaultAsync(p => p.FkPlayeridPlayer == playerId);
+            if (purse == null)
+                return NotFound("Player purse not found.");
+
+            _context.Iteminstances.Remove(itemInstance);
+            inventorySlot.FkItemidItem = null;
+            purse.Balance += sellValue;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { sellValue = sellValue });
+        }
+
     }
 }

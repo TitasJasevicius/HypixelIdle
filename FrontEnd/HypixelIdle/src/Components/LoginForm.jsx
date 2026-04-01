@@ -28,7 +28,7 @@ const getPlayerIdFromAccessToken = (accessToken) => {
         return null;
     }
 
-    // Supports .NET NameIdentifier plus common JWT aliases.
+    
     return (
         payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
         ?? payload.nameid
