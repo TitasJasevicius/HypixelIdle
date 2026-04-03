@@ -5,7 +5,10 @@
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "types": ["vite/client"],
-    "checkJs": true
+    "checkJs": true,
+    "strict": false,
+    "noImplicitAny": false
+    
   },
   "include": ["src"]
 }

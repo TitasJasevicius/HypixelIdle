@@ -1,0 +1,57 @@
+.block-pickup-grid {
+	position: relative;
+	display: grid;
+	grid-template-columns: repeat(9, minmax(0, 1fr));
+	gap: 0.35rem;
+	padding: 0.5rem;
+	border-radius: 0.6rem;
+	border: 1px solid rgba(120, 166, 206, 0.35);
+	background: rgba(7, 19, 29, 0.75);
+	user-select: none;
+}
+
+.block-pickup-slot {
+	position: relative;
+	aspect-ratio: 1 / 1;
+	border: 1px solid rgba(120, 166, 206, 0.35);
+	border-radius: 0.45rem;
+	background: rgba(27, 48, 66, 0.6);
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+	cursor: pointer;
+	padding: 0.1rem;
+}
+
+.block-pickup-item-image {
+	width: 80%;
+	height: 80%;
+	object-fit: contain;
+	image-rendering: pixelated;
+	pointer-events: none;
+}
+
+.block-pickup-quantity {
+	position: absolute;
+	bottom: 2px;
+	right: 4px;
+	font-size: 0.74rem;
+	font-weight: 700;
+	color: #e9f5ff;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+	pointer-events: none;
+}
+
+.block-pickup-held {
+	position: fixed;
+	transform: translate(-50%, -50%);
+	pointer-events: none;
+	z-index: 9999;
+	width: 44px;
+	height: 44px;
+	border-radius: 0.4rem;
+	background: rgba(8, 22, 33, 0.85);
+	border: 1px solid rgba(120, 166, 206, 0.42);
+	display: grid;
+	place-items: center;
+}

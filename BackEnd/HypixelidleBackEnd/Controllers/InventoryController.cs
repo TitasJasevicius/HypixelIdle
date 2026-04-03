@@ -228,6 +228,38 @@ namespace HypixelidleBackEnd.Controllers
 
             return Ok();
         }
+        
+        [HttpPut]
+        //update auth later
+        [AllowAnonymous]
+        [Route("UpdateInventorySlot")]
+        public async Task<ActionResult> UpdateInventorySlot(int inventorySlotId, int quantity)
+        {
+            var inventorySlot = await _context.Playerinventoryslots.FindAsync(inventorySlotId);
+
+            if (inventorySlot == null)
+            {
+                return NotFound();
+            }
+
+            if (quantity < 0)
+            {
+                return BadRequest("Quantity cannot be negative.");
+            }
+
+            inventorySlot.Quantity = quantity;
+
+            if (quantity == 0)
+            {
+                inventorySlot.FkItemidItem = null;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        
 
         //Helper methods / dto
 

@@ -2,6 +2,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { formatDisplayName } from './DisplayNameUtils';
+import DisplayItemInfo from './DisplayItemInfo';
 import '../Styles/InventoryStyles.css';
 
 const HOTBAR_SLOTS = 9;
@@ -77,7 +78,42 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 	const [slots, setSlots] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState('');
+	const [selectedInfoSlotIndex, setSelectedInfoSlotIndex] = useState(null);
+	const [selectedInfoAnchorRect, setSelectedInfoAnchorRect] = useState(null);
+	const [statsById, setStatsById] = useState({});
+	const [itemStatsByItemId, setItemStatsByItemId] = useState({});
 	const hasLoadedOnceRef = useRef(false);
+
+	useEffect(() => {
+		const fetchStatsCatalog = async () => {
+			try {
+				const response = await axios.get('http://localhost:5091/api/Stats/GetStats', {
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
+				});
+
+				const statList = Array.isArray(response.data) ? response.data : [];
+				const mapped = {};
+				for (const stat of statList) {
+					const id = stat.idStats ?? stat.IdStats;
+					if (id != null) {
+						mapped[id] = {
+							id,
+							name: formatDisplayName(stat.name ?? stat.Name ?? `Stat ${id}`),
+						};
+					}
+				}
+
+				setStatsById(mapped);
+			} catch (fetchError) {
+				console.error('Failed to load stats catalog:', fetchError);
+			}
+		};
+
+		fetchStatsCatalog();
+	}, []);
 
 	useEffect(() => {
 		const fetchInventory = async () => {
@@ -148,6 +184,55 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 	const hotbarSlots = useMemo(() => fullSlotList.slice(0, HOTBAR_SLOTS), [fullSlotList]);
 	const mainInventorySlots = useMemo(() => fullSlotList.slice(HOTBAR_SLOTS), [fullSlotList]);
 
+	useEffect(() => {
+		if (selectedInfoSlotIndex == null) {
+			return;
+		}
+
+		const selectedSlot = fullSlotList[selectedInfoSlotIndex];
+		if (!selectedSlot?.fkItemidItem) {
+			return;
+		}
+
+		const itemId = selectedSlot.fkItemidItem;
+		if (itemStatsByItemId[itemId]) {
+			return;
+		}
+
+		const fetchItemStats = async () => {
+			try {
+				const response = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+					params: { itemId },
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
+				});
+
+				const mapped = Array.isArray(response.data)
+					? response.data.map((entry) => ({
+						statId: entry.fkStatsidStats ?? entry.FkStatsidStats,
+						value: entry.value ?? entry.Value ?? null,
+						percentageValue: entry.percentageValue ?? entry.PercentageValue ?? null,
+					}))
+					: [];
+
+				setItemStatsByItemId((prev) => ({
+					...prev,
+					[itemId]: mapped,
+				}));
+			} catch (fetchError) {
+				console.error('Failed to load item stats:', fetchError);
+				setItemStatsByItemId((prev) => ({
+					...prev,
+					[itemId]: [],
+				}));
+			}
+		};
+
+		fetchItemStats();
+	}, [selectedInfoSlotIndex, fullSlotList, itemStatsByItemId]);
+
 	const publishSellingSelection = (slot) => {
 		const hasItem = slot && slot.idPlayerInventorySlots != null && slot.quantity > 0 && slot.fkItemidItem != null;
 		const payload = hasItem
@@ -171,6 +256,38 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 		window.dispatchEvent(new CustomEvent('selling-item-selected', { detail: payload }));
 	};
 
+	const selectedInfoSlot = selectedInfoSlotIndex != null ? fullSlotList[selectedInfoSlotIndex] : null;
+	const selectedItemStats = useMemo(() => {
+		if (!selectedInfoSlot?.fkItemidItem) {
+			return [];
+		}
+
+		const rawStats = itemStatsByItemId[selectedInfoSlot.fkItemidItem] ?? [];
+
+		return rawStats
+			.map((entry) => {
+				const statName = statsById[entry.statId]?.name ?? `Stat ${entry.statId}`;
+				const hasAbsolute = entry.value != null;
+				const hasPercent = entry.percentageValue != null;
+
+				if (!hasAbsolute && !hasPercent) {
+					return null;
+				}
+
+				const displayValue = hasPercent
+					? `${entry.percentageValue > 0 ? '+' : ''}${entry.percentageValue}%`
+					: `${entry.value > 0 ? '+' : ''}${entry.value}`;
+
+				return {
+					name: statName,
+					displayValue,
+					value: entry.value,
+					percentageValue: entry.percentageValue,
+				};
+			})
+			.filter(Boolean);
+	}, [selectedInfoSlot, itemStatsByItemId, statsById]);
+
 	const renderSlot = (slot, index, isHotbar = false) => {
 		const isActiveHotbar = isHotbar && index === activeHotbarIndex;
 		const isLocked = slot.idPlayerInventorySlots == null;
@@ -186,14 +303,32 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 				key={`slot-${slot.slotIndex}`}
 				type="button"
 				className={`inventory-slot ${isActiveHotbar ? 'inventory-slot-active' : ''} ${isLocked ? 'inventory-slot-locked' : ''}`.trim()}
-				onClick={() => {
+				onClick={(event) => {
 					if (isLocked) {
+						setSelectedInfoSlotIndex(null);
+						setSelectedInfoAnchorRect(null);
 						publishSellingSelection(null);
 						return;
 					}
 
 					if (isHotbar) {
 						setActiveHotbarIndex(index);
+					}
+
+					if (hasItem) {
+						const nextRect = event.currentTarget.getBoundingClientRect();
+						setSelectedInfoSlotIndex((prev) => {
+							if (prev === slot.slotIndex) {
+								setSelectedInfoAnchorRect(null);
+								return null;
+							}
+
+							setSelectedInfoAnchorRect(nextRect);
+							return slot.slotIndex;
+						});
+					} else {
+						setSelectedInfoSlotIndex(null);
+						setSelectedInfoAnchorRect(null);
 					}
 
 					publishSellingSelection(hasItem ? slot : null);
@@ -228,6 +363,13 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 
 	return (
 		<section className={`inventory-panel ${className}`.trim()} aria-label="Player inventory">
+			<DisplayItemInfo
+				item={selectedInfoSlot}
+				stats={selectedItemStats}
+				anchorRect={selectedInfoAnchorRect}
+				iconPath={selectedInfoSlot?.quantity > 0 ? (resolveIconPath(selectedInfoSlot.itemIcon) || DEFAULT_ITEM_ICON) : ''}
+				isVisible={Boolean(selectedInfoSlot && selectedInfoAnchorRect && selectedInfoSlot.quantity > 0)}
+			/>
 			<header className="inventory-header">
 				<h3>Inventory</h3>
 				{isLoading ? <p>Loading slots...</p> : null}

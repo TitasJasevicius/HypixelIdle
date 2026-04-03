@@ -1,9 +1,9 @@
 /// <reference types="vite/client" />
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import Inventory from './Inventory';
 import { formatDisplayName } from './DisplayNameUtils';
 import '../Styles/CraftingTableStyles.css';
+import '../Styles/InventoryStyles.css';
 
 /** @type {Record<string, string>} */
 const BLOCK_TEXTURES = import.meta.glob('../Assets/Blocks/*.{png,jpg,jpeg,webp,gif,svg}', {
@@ -94,7 +94,9 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	const [craftError, setCraftError] = useState('');
 
 	const [craftingGrid, setCraftingGrid] = useState(Array(9).fill(null));
+	const [craftingGridSourceSlots, setCraftingGridSourceSlots] = useState(Array(9).fill(null));
 	const [matchedRecipe, setMatchedRecipe] = useState(null);
+	const [selectedInventorySlotIndex, setSelectedInventorySlotIndex] = useState(null);
 	const [isRecipeBookOpen, setIsRecipeBookOpen] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [inventoryRefreshToken, setInventoryRefreshToken] = useState(0);
@@ -264,16 +266,86 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	}, [recipes, recipeItems, searchQuery]);
 
 	const handleGridItemClick = (index) => {
-		setCraftingGrid((prev) => {
-			const newGrid = [...prev];
+		setCraftingGrid((prevGrid) => {
+			const nextGrid = [...prevGrid];
+			const nextSources = [...craftingGridSourceSlots];
 
-			if (newGrid[index] != null) {
-				newGrid[index] = null;
-				return newGrid;
+			if (nextGrid[index] != null) {
+				nextGrid[index] = null;
+				nextSources[index] = null;
+				setCraftingGridSourceSlots(nextSources);
+				return nextGrid;
 			}
 
-			return newGrid;
+			if (selectedInventorySlotIndex == null) {
+				return nextGrid;
+			}
+
+			const selectedSlot = inventorySlotsByIndex[selectedInventorySlotIndex];
+			if (!selectedSlot || !selectedSlot.fkItemidItem || Number(selectedSlot.quantity ?? 0) <= 0) {
+				return nextGrid;
+			}
+
+			const availableFromSelectedSlot = Number(selectedSlot.quantity ?? 0);
+			const currentlyUsedFromSelectedSlot = nextSources.filter((slotIndex) => slotIndex === selectedInventorySlotIndex).length;
+
+			if (availableFromSelectedSlot <= currentlyUsedFromSelectedSlot) {
+				return nextGrid;
+			}
+
+			nextGrid[index] = selectedSlot.fkItemidItem;
+			nextSources[index] = selectedInventorySlotIndex;
+			setCraftingGridSourceSlots(nextSources);
+
+			return nextGrid;
 		});
+	};
+
+	const inventorySlotsByIndex = useMemo(() => {
+		const byIndex = new Map();
+		for (const slot of inventorySlots) {
+			if (typeof slot.slotIndex === 'number') {
+				byIndex.set(slot.slotIndex, slot);
+			}
+		}
+
+		return Array.from({ length: TOTAL_INVENTORY_SLOTS }, (_, index) => byIndex.get(index) ?? {
+			slotIndex: index,
+			quantity: 0,
+			fkItemidItem: null,
+			itemName: '',
+			itemIcon: '',
+		});
+	}, [inventorySlots]);
+
+	const craftingMainInventorySlots = useMemo(
+		() => inventorySlotsByIndex.slice(9),
+		[inventorySlotsByIndex]
+	);
+
+	const craftingHotbarSlots = useMemo(
+		() => inventorySlotsByIndex.slice(0, 9),
+		[inventorySlotsByIndex]
+	);
+
+	const usedCountsBySlot = useMemo(() => {
+		const counts = {};
+		for (const slotIndex of craftingGridSourceSlots) {
+			if (slotIndex == null) {
+				continue;
+			}
+			counts[slotIndex] = (counts[slotIndex] ?? 0) + 1;
+		}
+		return counts;
+	}, [craftingGridSourceSlots]);
+
+	const handleInventoryItemClick = (slot) => {
+		if (!slot?.fkItemidItem || !slot?.quantity) {
+			setSelectedInventorySlotIndex(null);
+			return;
+		}
+
+		setSelectedInventorySlotIndex((prev) => (prev === slot.slotIndex ? null : slot.slotIndex));
 	};
 
 	const handleCraft = async () => {
@@ -331,7 +403,9 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 			);
 
 			setCraftingGrid(Array(9).fill(null));
+			setCraftingGridSourceSlots(Array(9).fill(null));
 			setMatchedRecipe(null);
+			setSelectedInventorySlotIndex(null);
 			setInventoryRefreshToken((prev) => prev + 1);
 		} catch (error) {
 			console.error('Failed to craft:', error);
@@ -393,10 +467,16 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 
 						<div className="result-slot">
 							{matchedRecipe ? (
-								<div className="matched-result">
+								<button
+									type="button"
+									className="matched-result"
+									onClick={handleCraft}
+									disabled={isCrafting}
+									title="Click to craft"
+								>
 									<img src={resultIcon} alt={formatDisplayName(resultItem?.name ?? resultItem?.Name ?? 'Result')} />
 									{resultQuantity > 1 ? <span className="result-qty">{resultQuantity}</span> : null}
-								</div>
+								</button>
 							) : (
 								<div className="no-match">?</div>
 							)}
@@ -405,21 +485,71 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 
 					<div className="craft-controls">
 						{matchedRecipe ? (
-							<button className="craft-button" onClick={handleCraft} disabled={isCrafting}>
-								{isCrafting ? 'Crafting...' : 'Craft'}
-							</button>
+							<p className="crafting-tip">Click the result slot to craft.</p>
 						) : (
-							<p className="crafting-tip">Select an item below, then click an empty crafting slot.</p>
+							<p className="crafting-tip">Select an inventory item, then click an empty crafting slot.</p>
 						)}
 						{craftError ? <p className="error">{craftError}</p> : null}
 					</div>
 				</div>
 
-				<Inventory
-					playerId={resolvedPlayerId}
-					refreshKey={inventoryRefreshToken}
-					className="crafting-table-inventory"
-				/>
+				<section className="inventory-panel crafting-table-inventory" aria-label="Crafting inventory selection">
+					<header className="inventory-header">
+						<h3>Inventory</h3>
+					{isLoadingInventory ? <p>Loading inventory...</p> : null}
+					{inventoryError ? <p className="error">{inventoryError}</p> : null}
+					</header>
+
+					<div className="inventory-main-grid" role="presentation">
+						{craftingMainInventorySlots.map((slot) => {
+							const hasItem = Boolean(slot.fkItemidItem) && Number(slot.quantity ?? 0) > 0;
+							const iconPath = hasItem ? withFallbackIcon(slot.itemIcon) : '';
+							const itemId = slot.fkItemidItem;
+							const available = hasItem ? Math.max(0, Number(slot.quantity ?? 0) - (usedCountsBySlot[slot.slotIndex] ?? 0)) : 0;
+							const isSelected = hasItem && selectedInventorySlotIndex === slot.slotIndex;
+
+							return (
+								<button
+									type="button"
+									key={`craft-main-slot-${slot.slotIndex}`}
+									className={`inventory-slot ${isSelected ? 'inventory-slot-active' : ''}`.trim()}
+									onClick={() => handleInventoryItemClick(slot)}
+									disabled={!hasItem || available <= 0}
+									title={hasItem ? `${slot.itemName} (${available} available)` : 'Empty slot'}
+								>
+									{hasItem ? <img src={iconPath} alt={slot.itemName || `Item ${itemId}`} className="inventory-slot-item-image" /> : null}
+									{hasItem ? <span className="inventory-slot-item-label">{slot.itemName}</span> : null}
+									{hasItem ? <span className="inventory-slot-quantity">{available}</span> : null}
+								</button>
+							);
+						})}
+					</div>
+
+					<div className="inventory-hotbar" role="presentation">
+						{craftingHotbarSlots.map((slot) => {
+							const hasItem = Boolean(slot.fkItemidItem) && Number(slot.quantity ?? 0) > 0;
+							const iconPath = hasItem ? withFallbackIcon(slot.itemIcon) : '';
+							const itemId = slot.fkItemidItem;
+							const available = hasItem ? Math.max(0, Number(slot.quantity ?? 0) - (usedCountsBySlot[slot.slotIndex] ?? 0)) : 0;
+							const isSelected = hasItem && selectedInventorySlotIndex === slot.slotIndex;
+
+							return (
+								<button
+									type="button"
+									key={`craft-hotbar-slot-${slot.slotIndex}`}
+									className={`inventory-slot ${isSelected ? 'inventory-slot-active' : ''}`.trim()}
+									onClick={() => handleInventoryItemClick(slot)}
+									disabled={!hasItem || available <= 0}
+									title={hasItem ? `${slot.itemName} (${available} available)` : 'Empty slot'}
+								>
+									{hasItem ? <img src={iconPath} alt={slot.itemName || `Item ${itemId}`} className="inventory-slot-item-image" /> : null}
+									{hasItem ? <span className="inventory-slot-item-label">{slot.itemName}</span> : null}
+									{hasItem ? <span className="inventory-slot-quantity">{available}</span> : null}
+								</button>
+							);
+						})}
+					</div>
+				</section>
 
 				{isRecipeBookOpen ? (
 					<section className="recipes-list">

@@ -82,8 +82,10 @@
 .crafting-grid-wrap {
 	display: flex;
 	align-items: center;
+	justify-content: center;
+	width: 100%;
 	gap: 12px;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 }
 
 .grid-3x3 {
@@ -121,6 +123,18 @@
 	align-items: center;
 	justify-content: center;
 	position: relative;
+}
+
+button.matched-result {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+button.matched-result:disabled {
+	cursor: wait;
+	opacity: 0.85;
 }
 
 .slot-item img,
@@ -177,6 +191,7 @@
 	display: grid;
 	gap: 8px;
 	margin-top: 12px;
+	grid-column: 1 / -1;
 }
 
 .crafting-tip {
