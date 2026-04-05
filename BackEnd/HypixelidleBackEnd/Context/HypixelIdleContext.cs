@@ -994,6 +994,7 @@ public partial class HypixelIdleContext : DbContext
 
             entity.ToTable("playerequipment");
 
+            entity.HasIndex(e => e.FkItemidItem, "fk_Itemid_Item");
             entity.HasIndex(e => e.FkPlayeridPlayer, "fk_Playerid_Player");
 
             entity.HasIndex(e => e.Slot, "slot");
@@ -1005,9 +1006,17 @@ public partial class HypixelIdleContext : DbContext
             entity.Property(e => e.FkPlayeridPlayer)
                 .HasColumnType("int(11)")
                 .HasColumnName("fk_Playerid_Player");
+            entity.Property(e => e.FkItemidItem)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Itemid_Item");
             entity.Property(e => e.Slot)
                 .HasColumnType("int(11)")
                 .HasColumnName("slot");
+
+            entity.HasOne(d => d.FkItemidItemNavigation).WithMany()
+                .HasForeignKey(d => d.FkItemidItem)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("playerequipment_ibfk_item");
 
             entity.HasOne(d => d.FkPlayeridPlayerNavigation).WithMany(p => p.Playerequipments)
                 .HasForeignKey(d => d.FkPlayeridPlayer)

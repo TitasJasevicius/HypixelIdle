@@ -38,6 +38,7 @@ namespace HypixelidleBackEnd.Controllers
                     Quantity = i.Quantity,
                     FkItemidItem = i.FkItemidItem,
                     ItemName = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.Name : null,
+                    ItemCategory = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.Category : null,
                     ItemIcon = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.Icon : null,
                     SellValue = i.FkItemidItemNavigation != null ? i.FkItemidItemNavigation.SellValue : null
                 })
@@ -292,6 +293,8 @@ namespace HypixelidleBackEnd.Controllers
             public int? FkItemidItem { get; set; }
 
             public string? ItemName { get; set; }
+
+            public string? ItemCategory { get; set; }
 
             public string? ItemIcon { get; set; }
 

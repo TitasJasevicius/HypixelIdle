@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import ForagingBlock from '../Components/ForagingBlock';
 import ForagingAppleSpecialEvent, {
@@ -7,6 +7,7 @@ import ForagingAppleSpecialEvent, {
 	rollForagingAppleSpawn,
 } from '../Components/ForagingAppleSpecialEvent';
 import Inventory from '../Components/Inventory';
+import PlayerEquipment from '../Components/PlayerEquipment';
 import PlayerCollection from '../Components/PlayerCollection';
 import ForagingHeader from '../Components/ForagingHeader';
 import ForagingZoneSelectModal from '../Components/ForagingZoneSelectModal';
@@ -83,6 +84,8 @@ const Foraging = () => {
 	const [dropError, setDropError] = useState('');
 	const [isSavingDrop, setIsSavingDrop] = useState(false);
 	const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
+	const [equipmentRefreshTick, setEquipmentRefreshTick] = useState(0);
+	const [collectionProgressTick, setCollectionProgressTick] = useState(0);
 	const [selectedZone, setSelectedZone] = useState('');
 	const [selectedNodeId, setSelectedNodeId] = useState(null);
 	const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
@@ -91,6 +94,12 @@ const Foraging = () => {
 	const [activeApplePosition, setActiveApplePosition] = useState(null);
 	const [isCollectingApple, setIsCollectingApple] = useState(false);
 	const [fruitSpecialCombo, setFruitSpecialCombo] = useState(loadForagingFruitCombo);
+	const handleInventoryChanged = useCallback(() => {
+		setInventoryRefreshTick((prev) => prev + 1);
+	}, []);
+	const handleEquipmentChanged = useCallback(() => {
+		setEquipmentRefreshTick((prev) => prev + 1);
+	}, []);
 
 	const playerId = useMemo(() => {
 		const storedPlayerId = localStorage.getItem('playerId');
@@ -352,6 +361,7 @@ const Foraging = () => {
 				});
 			}
 			setInventoryRefreshTick((prev) => prev + 1);
+			setCollectionProgressTick((prev) => prev + quantity);
 			return true;
 		} catch (error) {
 			console.error('Failed to add gathered item to inventory:', error);
@@ -607,11 +617,16 @@ const Foraging = () => {
 						playerId={playerId}
 						itemName={itemName}
 						collectionId={collectionId}
-						progressTick={inventoryRefreshTick}
+						progressTick={collectionProgressTick}
 					/>
 				</section>
 
-				<Inventory playerId={playerId} refreshKey={inventoryRefreshTick} />
+				<Inventory
+					playerId={playerId}
+					refreshKey={inventoryRefreshTick}
+					onInventoryChanged={handleInventoryChanged}
+					onEquipmentChanged={handleEquipmentChanged}
+				/>
 
 				<ForagingZoneSelectModal
 					isOpen={isZoneModalOpen}
@@ -635,10 +650,17 @@ const Foraging = () => {
 				/>
 			</section>
 
-			<aside className="foraging-selling-panel" aria-label="Sell inventory items">
+			<aside className="foraging-selling-panel" aria-label="Sell and equipment panel">
 				<SellingTab
 					playerId={playerId}
-					refreshInventory={() => setInventoryRefreshTick((prev) => prev + 1)}
+					refreshInventory={handleInventoryChanged}
+				/>
+
+				<PlayerEquipment
+					playerId={playerId}
+					refreshKey={equipmentRefreshTick}
+					onInventoryChanged={handleInventoryChanged}
+					onEquipmentChanged={handleEquipmentChanged}
 				/>
 			</aside>
 		</div>

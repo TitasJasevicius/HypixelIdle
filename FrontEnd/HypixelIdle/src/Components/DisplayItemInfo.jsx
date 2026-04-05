@@ -9,23 +9,38 @@ const DisplayItemInfo = ({
 	anchorRect,
 	iconPath = '',
 	isVisible = false,
+	primaryActionLabel = '',
+	onPrimaryAction = null,
+	primaryActionDisabled = false,
+	primaryActionHint = '',
 }) => {
 	const positionStyle = useMemo(() => {
 		if (!anchorRect || !isVisible) {
 			return null;
 		}
 
-		const tooltipWidth = 280;
 		const viewportWidth = window.innerWidth || 1280;
+		const viewportHeight = window.innerHeight || 720;
+		const tooltipWidth = Math.max(180, Math.min(236, viewportWidth - 16));
+		const tooltipEstimatedHeight = Math.min(260, Math.max(140, Math.floor(viewportHeight * 0.4)));
+		const maxLeft = Math.max(8, viewportWidth - tooltipWidth - 8);
 		const left = clamp(
 			anchorRect.left + (anchorRect.width / 2) - (tooltipWidth / 2),
 			8,
-			viewportWidth - tooltipWidth - 8
+			maxLeft
 		);
+
+		const spaceAbove = Math.max(0, anchorRect.top - 8);
+		const spaceBelow = Math.max(0, viewportHeight - anchorRect.bottom - 8);
+		const placeAbove = spaceAbove >= tooltipEstimatedHeight || spaceAbove >= spaceBelow;
+		const top = placeAbove
+			? clamp(anchorRect.top - 14, tooltipEstimatedHeight + 8, viewportHeight - 8)
+			: clamp(anchorRect.bottom + 14, 8, viewportHeight - tooltipEstimatedHeight - 8);
 
 		return {
 			left: `${left}px`,
-			top: `${Math.max(8, anchorRect.top - 14)}px`,
+			top: `${top}px`,
+			transform: placeAbove ? 'translateY(-100%)' : 'translateY(0)',
 		};
 	}, [anchorRect, isVisible]);
 
@@ -54,6 +69,18 @@ const DisplayItemInfo = ({
 			) : (
 				<p className="item-info-empty">No stats available.</p>
 			)}
+
+			{primaryActionLabel && onPrimaryAction ? (
+				<button
+					type="button"
+					className="item-info-action-button"
+					onClick={onPrimaryAction}
+					disabled={primaryActionDisabled}
+					title={primaryActionHint || primaryActionLabel}
+				>
+					{primaryActionLabel}
+				</button>
+			) : null}
 		</div>
 	);
 };

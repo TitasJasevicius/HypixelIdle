@@ -11,7 +11,11 @@ public partial class Playerequipment
 
     public int FkPlayeridPlayer { get; set; }
 
+    public int? FkItemidItem { get; set; }
+
     public virtual Player FkPlayeridPlayerNavigation { get; set; } = null!;
+
+    public virtual Item? FkItemidItemNavigation { get; set; }
 
     public virtual Iteminstance? Iteminstance { get; set; }
 

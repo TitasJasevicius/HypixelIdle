@@ -3,6 +3,7 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { formatDisplayName } from './DisplayNameUtils';
 import DisplayItemInfo from './DisplayItemInfo';
+import { fetchEquipmentSlotDefinitions, getEquipmentSlotLabelForItem, isEquipmentItem } from './EquipmentUtils';
 import '../Styles/InventoryStyles.css';
 
 const HOTBAR_SLOTS = 9;
@@ -43,6 +44,7 @@ const normalizeSlot = (slot) => ({
 	quantity: slot.quantity ?? slot.Quantity ?? 0,
 	fkItemidItem: slot.fkItemidItem ?? slot.FkItemidItem ?? null,
 	itemName: formatDisplayName(slot.itemName ?? slot.ItemName ?? ''),
+	itemCategory: slot.itemCategory ?? slot.ItemCategory ?? slot.category ?? slot.Category ?? '',
 	itemIcon: slot.itemIcon ?? slot.ItemIcon ?? '',
 	sellValue: slot.sellValue ?? slot.SellValue ?? 0,
 });
@@ -73,7 +75,13 @@ const resolveIconPath = (iconPath) => {
 	return fileName ? (BLOCK_TEXTURE_BY_FILE[fileName] ?? '') : '';
 };
 
-const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
+const Inventory = ({
+	playerId,
+	className = '',
+	refreshKey = 0,
+	onInventoryChanged = null,
+	onEquipmentChanged = null,
+}) => {
 	const [activeHotbarIndex, setActiveHotbarIndex] = useState(0);
 	const [slots, setSlots] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -82,7 +90,22 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 	const [selectedInfoAnchorRect, setSelectedInfoAnchorRect] = useState(null);
 	const [statsById, setStatsById] = useState({});
 	const [itemStatsByItemId, setItemStatsByItemId] = useState({});
+	const [equipmentSlotDefinitions, setEquipmentSlotDefinitions] = useState([]);
+	const [isEquipping, setIsEquipping] = useState(false);
 	const hasLoadedOnceRef = useRef(false);
+
+	useEffect(() => {
+		const loadEquipmentDefinitions = async () => {
+			try {
+				const definitions = await fetchEquipmentSlotDefinitions();
+				setEquipmentSlotDefinitions(definitions);
+			} catch (loadError) {
+				console.error('Failed to load equipment slot definitions:', loadError);
+			}
+		};
+
+		loadEquipmentDefinitions();
+	}, []);
 
 	useEffect(() => {
 		const fetchStatsCatalog = async () => {
@@ -256,7 +279,50 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 		window.dispatchEvent(new CustomEvent('selling-item-selected', { detail: payload }));
 	};
 
+	const handleEquipSelectedItem = async () => {
+		if (!playerId || selectedInfoSlotIndex == null) {
+			return;
+		}
+
+		const selectedSlot = fullSlotList[selectedInfoSlotIndex];
+		if (!selectedSlot?.idPlayerInventorySlots || !isEquipmentItem(selectedSlot)) {
+			return;
+		}
+
+		try {
+			setIsEquipping(true);
+
+			await axios.post('http://localhost:5091/api/PlayerEquipment/EquipPlayerItem', {
+				playerId,
+				inventorySlotId: selectedSlot.idPlayerInventorySlots,
+			}, {
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
+
+			setSelectedInfoSlotIndex(null);
+			setSelectedInfoAnchorRect(null);
+			if (onInventoryChanged) {
+				onInventoryChanged();
+			}
+			if (onEquipmentChanged) {
+				onEquipmentChanged();
+			}
+		} catch (equipError) {
+			console.error('Failed to equip item:', equipError);
+			setError('Failed to equip item.');
+		} finally {
+			setIsEquipping(false);
+		}
+	};
+
 	const selectedInfoSlot = selectedInfoSlotIndex != null ? fullSlotList[selectedInfoSlotIndex] : null;
+	const selectedInfoSlotEquipmentLabel = selectedInfoSlot
+		? getEquipmentSlotLabelForItem(selectedInfoSlot, equipmentSlotDefinitions)
+		: null;
+	const canEquipSelectedItem = Boolean(selectedInfoSlot && isEquipmentItem(selectedInfoSlot));
 	const selectedItemStats = useMemo(() => {
 		if (!selectedInfoSlot?.fkItemidItem) {
 			return [];
@@ -369,6 +435,10 @@ const Inventory = ({ playerId, className = '', refreshKey = 0 }) => {
 				anchorRect={selectedInfoAnchorRect}
 				iconPath={selectedInfoSlot?.quantity > 0 ? (resolveIconPath(selectedInfoSlot.itemIcon) || DEFAULT_ITEM_ICON) : ''}
 				isVisible={Boolean(selectedInfoSlot && selectedInfoAnchorRect && selectedInfoSlot.quantity > 0)}
+				primaryActionLabel={canEquipSelectedItem ? (selectedInfoSlotEquipmentLabel ? `Equip to ${selectedInfoSlotEquipmentLabel}` : 'Equip') : ''}
+				onPrimaryAction={canEquipSelectedItem ? handleEquipSelectedItem : null}
+				primaryActionDisabled={isEquipping}
+				primaryActionHint={canEquipSelectedItem ? (selectedInfoSlotEquipmentLabel ? `Equip this item to the ${selectedInfoSlotEquipmentLabel} slot.` : 'Equip this item.') : ''}
 			/>
 			<header className="inventory-header">
 				<h3>Inventory</h3>

@@ -435,7 +435,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 						onClick={() => setIsRecipeBookOpen((prev) => !prev)}
 						title="Toggle recipe book"
 					>
-						<span className="book-icon">B</span>
+						<span className="book-icon">R</span>
 					</button>
 
 					<div className="crafting-grid-wrap">
