@@ -102,6 +102,24 @@ namespace HypixelidleBackEnd.Controllers
 
             return NoContent();
         }
+
+        [HttpGet]
+        [Route("GetPlayerStats")]
+        public async Task<ActionResult<List<Entitystat>>> GetPlayerStats(int playerId)
+        {
+            var playerStats = await _context.Entitystats
+                .AsNoTracking()
+                .Include(s => s.FkStatsidStatsNavigation)
+                .Where(s => s.FkPlayeridPlayer == playerId)
+                .ToListAsync();
+
+            if (playerStats == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(playerStats);
+        }
     }
 
 }

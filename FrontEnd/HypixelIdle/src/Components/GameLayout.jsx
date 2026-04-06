@@ -49,10 +49,17 @@ const GameLayout = () => {
             to: '/foraging',
         };
 
+        const combatMenuItem = {
+            id: 'skills-combat',
+            label: 'Combat',
+            to: '/combat',
+        };
+
         const buildUniqueSkills = (dynamicSkills) => {
             const seenLabels = new Set([
                 miningMenuItem.label.toLowerCase(),
                 foragingMenuItem.label.toLowerCase(),
+                combatMenuItem.label.toLowerCase(),
             ]);
             const uniqueDynamicSkills = [];
 
@@ -71,19 +78,19 @@ const GameLayout = () => {
                 });
             }
 
-            return [miningMenuItem, foragingMenuItem, ...uniqueDynamicSkills];
+            return [miningMenuItem, foragingMenuItem, combatMenuItem, ...uniqueDynamicSkills];
         };
 
         if (isLoadingSkills) {
-            return [miningMenuItem, foragingMenuItem, { id: 'skills-loading', label: 'Loading skills...' }];
+            return [miningMenuItem, foragingMenuItem, combatMenuItem, { id: 'skills-loading', label: 'Loading skills...' }];
         }
 
         if (skillsError) {
-            return [miningMenuItem, foragingMenuItem, { id: 'skills-error', label: 'Unable to load skills' }];
+            return [miningMenuItem, foragingMenuItem, combatMenuItem, { id: 'skills-error', label: 'Unable to load skills' }];
         }
 
         if (skills.length === 0) {
-            return [miningMenuItem, foragingMenuItem, { id: 'skills-empty', label: 'No skills available' }];
+            return [miningMenuItem, foragingMenuItem, combatMenuItem, { id: 'skills-empty', label: 'No skills available' }];
         }
 
         return buildUniqueSkills(skills);
@@ -98,7 +105,7 @@ const GameLayout = () => {
             },
             {
                 id: 'gameplay',
-                label: 'Gameplay',
+                label: 'Crafting',
                 children: [
                     { id: 'gameplay-crafting', label: 'Crafting Table', to: '/crafting' },
                 ],

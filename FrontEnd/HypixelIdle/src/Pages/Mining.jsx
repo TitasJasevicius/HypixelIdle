@@ -41,6 +41,8 @@ const Mining = () => {
 	const [isLoadingSkill, setIsLoadingSkill] = useState(true);
 	const [skillError, setSkillError] = useState('');
 	const [playerMiningLevel, setPlayerMiningLevel] = useState(0);
+	const [miningSkillId, setMiningSkillId] = useState(null);
+	const [playerMiningSkillState, setPlayerMiningSkillState] = useState(null);
 	const [purseBalance, setPurseBalance] = useState(0);
 	const [isLoadingPurse, setIsLoadingPurse] = useState(true);
 	const [purseError, setPurseError] = useState('');
@@ -92,6 +94,7 @@ const Mining = () => {
 
 				const requests = [
 					axios.get('http://localhost:5091/api/Node/GetNodes', {
+						params: playerId ? { playerId } : undefined,
 						headers: {
 							Accept: 'application/json',
 						},
@@ -114,6 +117,7 @@ const Mining = () => {
 							params: {
 								playerId,
 							},
+							validateStatus: (status) => status === 200 || status === 404,
 							headers: {
 								Accept: 'application/json',
 								...getAuthHeaders(),
@@ -161,10 +165,22 @@ const Mining = () => {
 				});
 
 				const miningSkillId = toNumberOrNull(miningSkill?.idSkills ?? miningSkill?.IdSkills);
-				const playerSkills = Array.isArray(playerSkillsResponse?.data) ? playerSkillsResponse.data : [];
+				setMiningSkillId(miningSkillId);
+				const playerSkills = playerSkillsResponse?.status === 404
+					? []
+					: (Array.isArray(playerSkillsResponse?.data) ? playerSkillsResponse.data : []);
 				const playerMiningSkill = miningSkillId != null
 					? playerSkills.find((skill) => toNumberOrNull(skill.fkSkillsidSkills ?? skill.FkSkillsidSkills) === miningSkillId)
 					: null;
+
+				setPlayerMiningSkillState(playerMiningSkill
+					? {
+						idPlayerSkills: toNumberOrNull(playerMiningSkill.idPlayerSkills ?? playerMiningSkill.IdPlayerSkills),
+						fkSkillsidSkills: toNumberOrNull(playerMiningSkill.fkSkillsidSkills ?? playerMiningSkill.FkSkillsidSkills),
+						level: toNumberOrNull(playerMiningSkill.level ?? playerMiningSkill.Level) ?? 1,
+						xp: Number(playerMiningSkill.xp ?? playerMiningSkill.Xp ?? 0),
+					}
+					: null);
 
 				setPlayerMiningLevel(toNumberOrNull(playerMiningSkill?.level ?? playerMiningSkill?.Level) ?? 0);
 
@@ -183,6 +199,44 @@ const Mining = () => {
 
 		fetchMiningData();
 	}, [playerId]);
+
+	const awardMiningSkillXp = useCallback(async (xpReward) => {
+		const xpToAdd = Math.max(0, Number(xpReward ?? 0));
+		if (!playerId || xpToAdd <= 0) {
+			return;
+		}
+
+		const skillId = miningSkillId ?? playerMiningSkillState?.fkSkillsidSkills;
+		if (!skillId) {
+			return;
+		}
+
+		try {
+			const response = await axios.post('http://localhost:5091/api/PlayerSkills/GrantSkillXp', {
+				playerId,
+				skillId,
+				xpToAdd,
+			}, {
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
+
+			const updatedSkill = response?.data ?? null;
+			if (updatedSkill) {
+				setPlayerMiningSkillState({
+					idPlayerSkills: toNumberOrNull(updatedSkill.idPlayerSkills ?? updatedSkill.IdPlayerSkills),
+					fkSkillsidSkills: toNumberOrNull(updatedSkill.fkSkillsidSkills ?? updatedSkill.FkSkillsidSkills) ?? skillId,
+					level: toNumberOrNull(updatedSkill.level ?? updatedSkill.Level) ?? 1,
+					xp: Number(updatedSkill.xp ?? updatedSkill.Xp ?? 0),
+				});
+				setPlayerMiningLevel(toNumberOrNull(updatedSkill.level ?? updatedSkill.Level) ?? playerMiningLevel);
+			}
+		} catch (error) {
+			console.error('Failed to update mining skill XP:', error);
+		}
+	}, [playerId, miningSkillId, playerMiningSkillState, playerMiningLevel]);
 
 	const miningTypeNodes = useMemo(
 		() => nodes.filter((node) => node.fkNodetypeidNodeType === MINING_NODE_TYPE_ID),
@@ -448,6 +502,8 @@ const Mining = () => {
 		if (!didMine) {
 			return;
 		}
+
+		await awardMiningSkillXp(minedNode?.xpReward);
 
 		handleMinedNode(minedNode);
 	};

@@ -78,6 +78,8 @@ const Foraging = () => {
 	const [isLoadingSkill, setIsLoadingSkill] = useState(true);
 	const [skillError, setSkillError] = useState('');
 	const [playerForagingLevel, setPlayerForagingLevel] = useState(0);
+	const [foragingSkillId, setForagingSkillId] = useState(null);
+	const [playerForagingSkillState, setPlayerForagingSkillState] = useState(null);
 	const [purseBalance, setPurseBalance] = useState(0);
 	const [isUnlockingNode, setIsUnlockingNode] = useState(false);
 	const [unlockedNodeMap, setUnlockedNodeMap] = useState({});
@@ -130,6 +132,7 @@ const Foraging = () => {
 
 				const requests = [
 					axios.get('http://localhost:5091/api/Node/GetNodes', {
+						params: playerId ? { playerId } : undefined,
 						headers: { Accept: 'application/json' },
 					}),
 					axios.get('http://localhost:5091/api/Item/GetItems', {
@@ -144,6 +147,7 @@ const Foraging = () => {
 					requests.push(
 						axios.get('http://localhost:5091/api/PlayerSkills/GetPlayerSkills', {
 							params: { playerId },
+							validateStatus: (status) => status === 200 || status === 404,
 							headers: {
 								Accept: 'application/json',
 								...getAuthHeaders(),
@@ -189,10 +193,22 @@ const Foraging = () => {
 				});
 
 				const foragingSkillId = toNumberOrNull(foragingSkill?.idSkills ?? foragingSkill?.IdSkills);
-				const playerSkills = Array.isArray(playerSkillsResponse?.data) ? playerSkillsResponse.data : [];
+				setForagingSkillId(foragingSkillId);
+				const playerSkills = playerSkillsResponse?.status === 404
+					? []
+					: (Array.isArray(playerSkillsResponse?.data) ? playerSkillsResponse.data : []);
 				const playerForagingSkill = foragingSkillId != null
 					? playerSkills.find((skill) => toNumberOrNull(skill.fkSkillsidSkills ?? skill.FkSkillsidSkills) === foragingSkillId)
 					: null;
+
+				setPlayerForagingSkillState(playerForagingSkill
+					? {
+						idPlayerSkills: toNumberOrNull(playerForagingSkill.idPlayerSkills ?? playerForagingSkill.IdPlayerSkills),
+						fkSkillsidSkills: toNumberOrNull(playerForagingSkill.fkSkillsidSkills ?? playerForagingSkill.FkSkillsidSkills),
+						level: toNumberOrNull(playerForagingSkill.level ?? playerForagingSkill.Level) ?? 1,
+						xp: Number(playerForagingSkill.xp ?? playerForagingSkill.Xp ?? 0),
+					}
+					: null);
 
 				setPlayerForagingLevel(toNumberOrNull(playerForagingSkill?.level ?? playerForagingSkill?.Level) ?? 0);
 				setPurseBalance(toNumberOrNull(purseResponse?.data?.balance ?? purseResponse?.data?.Balance) ?? 0);
@@ -208,6 +224,44 @@ const Foraging = () => {
 
 		fetchForagingData();
 	}, [playerId]);
+
+	const awardForagingSkillXp = useCallback(async (xpReward) => {
+		const xpToAdd = Math.max(0, Number(xpReward ?? 0));
+		if (!playerId || xpToAdd <= 0) {
+			return;
+		}
+
+		const skillId = foragingSkillId ?? playerForagingSkillState?.fkSkillsidSkills;
+		if (!skillId) {
+			return;
+		}
+
+		try {
+			const response = await axios.post('http://localhost:5091/api/PlayerSkills/GrantSkillXp', {
+				playerId,
+				skillId,
+				xpToAdd,
+			}, {
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
+
+			const updatedSkill = response?.data ?? null;
+			if (updatedSkill) {
+				setPlayerForagingSkillState({
+					idPlayerSkills: toNumberOrNull(updatedSkill.idPlayerSkills ?? updatedSkill.IdPlayerSkills),
+					fkSkillsidSkills: toNumberOrNull(updatedSkill.fkSkillsidSkills ?? updatedSkill.FkSkillsidSkills) ?? skillId,
+					level: toNumberOrNull(updatedSkill.level ?? updatedSkill.Level) ?? 1,
+					xp: Number(updatedSkill.xp ?? updatedSkill.Xp ?? 0),
+				});
+				setPlayerForagingLevel(toNumberOrNull(updatedSkill.level ?? updatedSkill.Level) ?? playerForagingLevel);
+			}
+		} catch (error) {
+			console.error('Failed to update foraging skill XP:', error);
+		}
+	}, [playerId, foragingSkillId, playerForagingSkillState, playerForagingLevel]);
 
 	const foragingNodes = useMemo(() => {
 		const enabledNodes = nodes.filter((node) => node.isEnabled);
@@ -460,6 +514,8 @@ const Foraging = () => {
 		if (!didGather) {
 			return;
 		}
+
+		await awardForagingSkillXp(selectedNode?.xpReward);
 
 		if (!activeAppleItemId) {
 			const spawnedApple = rollForagingAppleSpawn(foragingAppleEventItems);

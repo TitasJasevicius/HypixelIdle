@@ -66,11 +66,67 @@ namespace HypixelidleBackEnd.Controllers
             }
             else
             {
+                if (playerSkill.IdPlayerSkills <= 0)
+                {
+                    playerSkill.IdPlayerSkills = await GetNextPlayerSkillIdAsync();
+                }
                 _context.Playerskills.Add(playerSkill);
             }
 
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        [HttpPost]
+        [Route("GrantSkillXp")]
+        public async Task<ActionResult<Playerskill>> GrantSkillXp([FromBody] GrantSkillXpRequest request)
+        {
+            if (request.PlayerId <= 0 || request.SkillId <= 0)
+            {
+                return BadRequest("PlayerId and SkillId must be greater than zero.");
+            }
+
+            if (request.XpToAdd <= 0)
+            {
+                return BadRequest("XpToAdd must be greater than zero.");
+            }
+
+            var playerSkill = await _context.Playerskills
+                .FirstOrDefaultAsync(ps => ps.FkPlayeridPlayer == request.PlayerId && ps.FkSkillsidSkills == request.SkillId);
+
+            if (playerSkill == null)
+            {
+                playerSkill = new Playerskill
+                {
+                    IdPlayerSkills = await GetNextPlayerSkillIdAsync(),
+                    FkPlayeridPlayer = request.PlayerId,
+                    FkSkillsidSkills = request.SkillId,
+                    Level = 1,
+                    Xp = 0,
+                };
+
+                _context.Playerskills.Add(playerSkill);
+            }
+
+            playerSkill.Xp += request.XpToAdd;
+
+            await _context.SaveChangesAsync();
+            return Ok(playerSkill);
+        }
+
+        private async Task<int> GetNextPlayerSkillIdAsync()
+        {
+            var currentMax = await _context.Playerskills.MaxAsync(ps => (int?)ps.IdPlayerSkills) ?? 0;
+            return currentMax + 1;
+        }
+
+        public sealed class GrantSkillXpRequest
+        {
+            public int PlayerId { get; set; }
+
+            public int SkillId { get; set; }
+
+            public float XpToAdd { get; set; }
         }
     }
 }
