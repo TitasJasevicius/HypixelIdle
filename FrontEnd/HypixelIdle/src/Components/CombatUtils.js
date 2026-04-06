@@ -4,14 +4,10 @@ import { toNumberOrNull } from './MiningUtils';
 export const ATTACK_STYLES = {
 	melee: {
 		label: 'Melee',
-		baseMin: 16,
-		baseMax: 24,
 		intervalMs: 1100,
 	},
 	ranged: {
 		label: 'Ranged',
-		baseMin: 12,
-		baseMax: 20,
 		intervalMs: 1350,
 	},
 };
@@ -91,6 +87,12 @@ export const formatDropQuantityRange = (minQuantity, maxQuantity) => {
 	return range.min === range.max ? `x${range.min}` : `x${range.min}-${range.max}`;
 };
 
+export const formatDropChancePercent = (dropChance) => {
+	const safeChance = Math.max(0, Number(dropChance) || 0) * 100;
+	const formatted = safeChance.toFixed(12).replace(/\.?(0+)$/, '');
+	return `${formatted}%`;
+};
+
 export const calculateMitigatedDamage = (incomingDamage, defense) => {
 	const safeIncomingDamage = Math.max(0, Number(incomingDamage) || 0);
 	const safeDefense = Math.max(0, Number(defense) || 0);
@@ -108,4 +110,22 @@ export const calculateEffectiveHealth = (health, defense) => {
 	const safeHealth = Math.max(0, Number(health) || 0);
 	const safeDefense = Math.max(0, Number(defense) || 0);
 	return Math.floor(safeHealth * (1 + safeDefense / 100));
+};
+
+export const calculatePlayerHitDamage = ({
+	baseDamage,
+	strength,
+	critDamage,
+	enemyDefense,
+}) => {
+	const safeBaseDamage = Math.max(1, Number(baseDamage) || 1);
+	const safeStrength = Math.max(0, Number(strength) || 0);
+	const safeCritDamage = Math.max(0, Number(critDamage) || 0);
+	const safeEnemyDefense = Math.max(0, Number(enemyDefense) || 0);
+
+	const preDefenseDamage = safeBaseDamage * (1 + safeStrength / 100) * (1 + safeCritDamage / 100);
+	const defenseMultiplier = 100 / (100 + safeEnemyDefense);
+	const finalDamage = Math.floor(preDefenseDamage * defenseMultiplier);
+
+	return Math.max(1, finalDamage);
 };

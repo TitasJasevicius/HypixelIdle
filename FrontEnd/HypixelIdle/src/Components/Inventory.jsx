@@ -9,6 +9,7 @@ import '../Styles/InventoryStyles.css';
 const HOTBAR_SLOTS = 9;
 const TOTAL_SLOTS = 36;
 const SELLING_SELECTED_ITEM_STORAGE_KEY = 'sellingSelectedInventoryItem';
+const COMBAT_HELD_ITEM_STORAGE_KEY = 'combatHeldInventoryItem';
 
 /** @type {Record<string, string>} */
 const BLOCK_TEXTURES = import.meta.glob('../Assets/Blocks/*.{png,jpg,jpeg,webp,gif,svg}', {
@@ -265,6 +266,7 @@ const Inventory = ({
 				quantity: Number(slot.quantity ?? 0),
 				fkItemidItem: slot.fkItemidItem,
 				itemName: slot.itemName ?? '',
+				itemCategory: slot.itemCategory ?? '',
 				itemIcon: slot.itemIcon ?? '',
 				sellValue: Number(slot.sellValue ?? 0),
 			}
@@ -277,6 +279,29 @@ const Inventory = ({
 		}
 
 		window.dispatchEvent(new CustomEvent('selling-item-selected', { detail: payload }));
+	};
+
+	const publishCombatHeldItemSelection = (slot) => {
+		const hasItem = slot && slot.idPlayerInventorySlots != null && slot.quantity > 0 && slot.fkItemidItem != null;
+		const payload = hasItem
+			? {
+				idPlayerInventorySlots: slot.idPlayerInventorySlots,
+				slotIndex: slot.slotIndex,
+				quantity: Number(slot.quantity ?? 0),
+				fkItemidItem: slot.fkItemidItem,
+				itemName: slot.itemName ?? '',
+				itemCategory: slot.itemCategory ?? '',
+				itemIcon: slot.itemIcon ?? '',
+			}
+			: null;
+
+		if (payload) {
+			localStorage.setItem(COMBAT_HELD_ITEM_STORAGE_KEY, JSON.stringify(payload));
+		} else {
+			localStorage.removeItem(COMBAT_HELD_ITEM_STORAGE_KEY);
+		}
+
+		window.dispatchEvent(new CustomEvent('combat-held-item-selected', { detail: payload }));
 	};
 
 	const handleEquipSelectedItem = async () => {
@@ -317,6 +342,13 @@ const Inventory = ({
 			setIsEquipping(false);
 		}
 	};
+
+	useEffect(() => {
+		const hotbarSlot = hotbarSlots[activeHotbarIndex] ?? null;
+		if (hotbarSlot?.fkItemidItem && Number(hotbarSlot.quantity ?? 0) > 0) {
+			publishCombatHeldItemSelection(hotbarSlot);
+		}
+	}, [activeHotbarIndex, hotbarSlots]);
 
 	const selectedInfoSlot = selectedInfoSlotIndex != null ? fullSlotList[selectedInfoSlotIndex] : null;
 	const selectedInfoSlotEquipmentLabel = selectedInfoSlot
@@ -398,6 +430,7 @@ const Inventory = ({
 					}
 
 					publishSellingSelection(hasItem ? slot : null);
+					publishCombatHeldItemSelection(hasItem ? slot : null);
 				}}
 				aria-label={`Inventory slot ${slot.slotIndex}`}
 				disabled={isLocked}

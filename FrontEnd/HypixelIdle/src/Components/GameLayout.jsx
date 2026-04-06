@@ -111,10 +111,10 @@ const GameLayout = () => {
                 ],
             },
             {
-                id: 'training',
-                label: 'Training',
+                id: 'skin-render',
+                label: 'Skin Render',
                 children: [
-                    { id: 'training-skin-render', label: 'Skin Render Test', to: '/skin-render' },
+                    { id: 'training-skin-render', label: 'Skin Render', to: '/skin-render' },
                 ],
             },
             {

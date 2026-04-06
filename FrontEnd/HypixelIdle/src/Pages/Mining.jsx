@@ -9,7 +9,7 @@ import ZoneSelectModal from '../Components/ZoneSelectModal';
 import NodeSelectModal from '../Components/NodeSelectModal';
 import SellingTab from '../Components/SellingTab';
 import useTitaniumEvent from '../Components/TitaniumEventLogic';
-import { rollHitsForClick, useCalculateMiningSpeed } from '../Components/CalculateMiningSpeed';
+import { rollHitsForClick, useCalculateMiningSpeed } from '../Components/CalculateGatheringSpeed';
 import {
 	BLOCK_TEXTURE_BY_FILE,
 	DEFAULT_BLOCK_HEALTH,

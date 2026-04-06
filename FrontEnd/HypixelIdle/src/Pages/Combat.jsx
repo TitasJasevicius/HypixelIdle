@@ -2,21 +2,57 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import Inventory from '../Components/Inventory';
 import PlayerEquipment from '../Components/PlayerEquipment';
+import CombatRangedSetup from '../Components/CombatRangedSetup';
+import CombatBattle from '../Components/CombatBattle';
 import { BLOCK_TEXTURE_BY_FILE, getAuthHeaders, resolveIconPath, toNumberOrNull } from '../Components/MiningUtils';
 import {
 	ATTACK_STYLES,
 	battleModes,
-	calculateEffectiveHealth,
 	calculateMitigatedDamage,
+	calculatePlayerHitDamage,
 	formatDropQuantityRange,
+	formatDropChancePercent,
 	getPlayerId,
 	normalizeMob,
 	rollDropQuantity,
-	rollInteger,
 } from '../Components/CombatUtils';
 import '../Styles/GlobalStyles.css';
 import '../Styles/CombatStyles.css';
 import '../Styles/InventoryStyles.css';
+
+const COMBAT_HELD_ITEM_STORAGE_KEY = 'combatHeldInventoryItem';
+const COMBAT_BOW_ITEM_STORAGE_KEY = 'combatBowInventoryItem';
+const COMBAT_ARROW_ITEM_STORAGE_KEY = 'combatArrowInventoryItem';
+const SELLING_SELECTED_ITEM_STORAGE_KEY = 'sellingSelectedInventoryItem';
+
+const toCategoryKey = (value) => (value ?? '').toString().trim().toLowerCase();
+
+const isBowCategory = (category) => toCategoryKey(category) === 'combat_weapon_bows';
+
+const isArrowCategory = (category) => toCategoryKey(category).includes('arrow');
+
+const normalizeInventorySlot = (slot) => ({
+	idPlayerInventorySlots: toNumberOrNull(slot.idPlayerInventorySlots ?? slot.IdPlayerInventorySlots),
+	slotIndex: toNumberOrNull(slot.slotIndex ?? slot.SlotIndex),
+	quantity: toNumberOrNull(slot.quantity ?? slot.Quantity) ?? 0,
+	fkItemidItem: toNumberOrNull(slot.fkItemidItem ?? slot.FkItemidItem),
+	itemName: slot.itemName ?? slot.ItemName ?? '',
+	itemIcon: slot.itemIcon ?? slot.ItemIcon ?? '',
+	itemCategory: slot.itemCategory ?? slot.ItemCategory ?? slot.category ?? slot.Category ?? '',
+});
+
+const parseStoredSelection = (storageKey) => {
+	const raw = localStorage.getItem(storageKey);
+	if (!raw) {
+		return null;
+	}
+
+	try {
+		return JSON.parse(raw);
+	} catch {
+		return null;
+	}
+};
 
 const Combat = () => {
 	const [playerId] = useState(getPlayerId);
@@ -31,13 +67,25 @@ const Combat = () => {
 	const [playerHealth, setPlayerHealth] = useState(0);
 	const [playerMaxHealth, setPlayerMaxHealth] = useState(0);
 	const [playerDefense, setPlayerDefense] = useState(0);
+	const [playerBaseDamage, setPlayerBaseDamage] = useState(1);
+	const [playerStrength, setPlayerStrength] = useState(0);
+	const [playerCritDamage, setPlayerCritDamage] = useState(0);
+	const [bowDamageBonus, setBowDamageBonus] = useState(0);
+	const [, setHeldItem] = useState(() => parseStoredSelection(COMBAT_HELD_ITEM_STORAGE_KEY));
+	const [bowSlot, setBowSlot] = useState(() => parseStoredSelection(COMBAT_BOW_ITEM_STORAGE_KEY));
+	const [arrowSlot, setArrowSlot] = useState(() => parseStoredSelection(COMBAT_ARROW_ITEM_STORAGE_KEY));
+	const [enemyDefense, setEnemyDefense] = useState(0);
+	const [heldItemRefreshTick, setHeldItemRefreshTick] = useState(0);
 	const [enemyHealth, setEnemyHealth] = useState(0);
 	const [isBattling, setIsBattling] = useState(false);
 	const [battleLog, setBattleLog] = useState([]);
 	const [lootResults, setLootResults] = useState([]);
 	const [rewardMessage, setRewardMessage] = useState('');
+	const [bowSlotMessage, setBowSlotMessage] = useState('');
+	const [arrowSlotMessage, setArrowSlotMessage] = useState('');
 	const [isRollingLoot, setIsRollingLoot] = useState(false);
 	const [isDropsModalOpen, setIsDropsModalOpen] = useState(false);
+	const [isMobSelectModalOpen, setIsMobSelectModalOpen] = useState(false);
 	const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
 	const [equipmentRefreshTick, setEquipmentRefreshTick] = useState(0);
 	const selectedMobRef = useRef(null);
@@ -47,6 +95,10 @@ const Combat = () => {
 	const attackStyleRef = useRef('melee');
 	const isBattlingRef = useRef(false);
 	const attackLockRef = useRef(false);
+	const pendingArrowConsumptionRef = useRef({
+		itemId: null,
+		quantity: 0,
+	});
 
 	const handleInventoryChanged = useCallback(() => {
 		setInventoryRefreshTick((prev) => prev + 1);
@@ -81,19 +133,39 @@ const Combat = () => {
 	}, [isBattling]);
 
 	useEffect(() => {
-		if (!isDropsModalOpen) {
+		const onHeldItemSelected = () => {
+			setHeldItemRefreshTick((prev) => prev + 1);
+		};
+
+		const onStorageSync = (event) => {
+			if (event?.key === COMBAT_HELD_ITEM_STORAGE_KEY || event?.key === COMBAT_BOW_ITEM_STORAGE_KEY || event?.key === COMBAT_ARROW_ITEM_STORAGE_KEY) {
+				setHeldItemRefreshTick((prev) => prev + 1);
+			}
+		};
+
+		window.addEventListener('combat-held-item-selected', onHeldItemSelected);
+		window.addEventListener('storage', onStorageSync);
+		return () => {
+			window.removeEventListener('combat-held-item-selected', onHeldItemSelected);
+			window.removeEventListener('storage', onStorageSync);
+		};
+	}, []);
+
+	useEffect(() => {
+		if (!isDropsModalOpen && !isMobSelectModalOpen) {
 			return undefined;
 		}
 
 		const onEscape = (event) => {
 			if (event.key === 'Escape') {
 				setIsDropsModalOpen(false);
+				setIsMobSelectModalOpen(false);
 			}
 		};
 
 		window.addEventListener('keydown', onEscape);
 		return () => window.removeEventListener('keydown', onEscape);
-	}, [isDropsModalOpen]);
+	}, [isDropsModalOpen, isMobSelectModalOpen]);
 
 	useEffect(() => {
 		const fetchCombatData = async () => {
@@ -180,6 +252,24 @@ const Combat = () => {
 					});
 					const defenseStatId = toNumberOrNull(defenseStatDefinition?.idStats ?? defenseStatDefinition?.IdStats);
 
+					const damageStatDefinition = allStats.find((statDef) => {
+						const statName = (statDef.name ?? statDef.Name ?? '').toLowerCase().trim();
+						return statName === 'damage';
+					});
+					const damageStatId = toNumberOrNull(damageStatDefinition?.idStats ?? damageStatDefinition?.IdStats);
+
+					const strengthStatDefinition = allStats.find((statDef) => {
+						const statName = (statDef.name ?? statDef.Name ?? '').toLowerCase().trim();
+						return statName === 'strength';
+					});
+					const strengthStatId = toNumberOrNull(strengthStatDefinition?.idStats ?? strengthStatDefinition?.IdStats);
+
+					const critDamageStatDefinition = allStats.find((statDef) => {
+						const statName = (statDef.name ?? statDef.Name ?? '').toLowerCase().trim().replace(/\s+/g, '');
+						return statName === 'critdamage';
+					});
+					const critDamageStatId = toNumberOrNull(critDamageStatDefinition?.idStats ?? critDamageStatDefinition?.IdStats);
+
 					const healthStat = healthStatId == null
 						? null
 						: playerStatsResponse.data.find((stat) => toNumberOrNull(stat.fkStatsidStats ?? stat.FkStatsidStats) === healthStatId);
@@ -188,8 +278,16 @@ const Combat = () => {
 						const healthValue = toNumberOrNull(healthStat.value ?? healthStat.Value);
 						if (healthValue !== null && healthValue > 0) {
 							setPlayerMaxHealth(healthValue);
-							setPlayerHealth(healthValue);
-							playerHealthRef.current = healthValue;
+							if (isBattlingRef.current) {
+								setPlayerHealth((currentHealth) => {
+									const nextHealth = Math.min(currentHealth, healthValue);
+									playerHealthRef.current = nextHealth;
+									return nextHealth;
+								});
+							} else {
+								setPlayerHealth(healthValue);
+								playerHealthRef.current = healthValue;
+							}
 						}
 					}
 
@@ -198,11 +296,116 @@ const Combat = () => {
 						: playerStatsResponse.data.find((stat) => toNumberOrNull(stat.fkStatsidStats ?? stat.FkStatsidStats) === defenseStatId);
 					const playerBaseDefense = toNumberOrNull(playerDefenseStat?.value ?? playerDefenseStat?.Value) ?? 0;
 
-					const equipmentRows = Array.isArray(playerEquipmentResponse?.data) ? playerEquipmentResponse.data : [];
-					const inventorySlots = Array.isArray(inventoryResponse?.data) ? inventoryResponse.data : [];
+					const playerDamageStat = damageStatId == null
+						? null
+						: playerStatsResponse.data.find((stat) => toNumberOrNull(stat.fkStatsidStats ?? stat.FkStatsidStats) === damageStatId);
+					const playerBaseDamageFromStats = toNumberOrNull(playerDamageStat?.value ?? playerDamageStat?.Value) ?? 0;
 
-					const heldSlot = inventorySlots.find((slot) => toNumberOrNull(slot.slotIndex ?? slot.SlotIndex) === 0);
-					const heldItemId = toNumberOrNull(heldSlot?.fkItemidItem ?? heldSlot?.FkItemidItem);
+					const playerStrengthStat = strengthStatId == null
+						? null
+						: playerStatsResponse.data.find((stat) => toNumberOrNull(stat.fkStatsidStats ?? stat.FkStatsidStats) === strengthStatId);
+					const playerBaseStrength = toNumberOrNull(playerStrengthStat?.value ?? playerStrengthStat?.Value) ?? 0;
+
+					const playerCritDamageStat = critDamageStatId == null
+						? null
+						: playerStatsResponse.data.find((stat) => toNumberOrNull(stat.fkStatsidStats ?? stat.FkStatsidStats) === critDamageStatId);
+					const playerBaseCritDamage = toNumberOrNull(playerCritDamageStat?.value ?? playerCritDamageStat?.Value) ?? 0;
+
+					const equipmentRows = Array.isArray(playerEquipmentResponse?.data) ? playerEquipmentResponse.data : [];
+					const inventorySlots = Array.isArray(inventoryResponse?.data)
+						? inventoryResponse.data.map(normalizeInventorySlot)
+						: [];
+
+					const parsedHeldItem = parseStoredSelection(COMBAT_HELD_ITEM_STORAGE_KEY);
+					const storedHeldItemId = toNumberOrNull(parsedHeldItem?.fkItemidItem);
+
+					const heldSlotBySelection = storedHeldItemId == null
+						? null
+						: inventorySlots.find((slot) => {
+							const itemId = toNumberOrNull(slot.fkItemidItem);
+							const quantity = toNumberOrNull(slot.quantity) ?? 0;
+							return itemId === storedHeldItemId && quantity > 0;
+						});
+
+					const heldSlot = heldSlotBySelection ?? inventorySlots.find((slot) => toNumberOrNull(slot.slotIndex) === 0);
+					const heldItemId = toNumberOrNull(heldSlot?.fkItemidItem);
+					let bowItemId = null;
+
+					setHeldItem(heldSlot && heldItemId != null
+						? {
+							idPlayerInventorySlots: heldSlot.idPlayerInventorySlots,
+							slotIndex: heldSlot.slotIndex,
+							fkItemidItem: heldItemId,
+							itemName: heldSlot.itemName ?? parsedHeldItem?.itemName ?? '',
+							itemIcon: heldSlot.itemIcon ?? parsedHeldItem?.itemIcon ?? '',
+							itemCategory: heldSlot.itemCategory ?? parsedHeldItem?.itemCategory ?? '',
+							quantity: toNumberOrNull(heldSlot.quantity) ?? 0,
+						}
+						: null);
+
+					const persistedBow = parseStoredSelection(COMBAT_BOW_ITEM_STORAGE_KEY);
+					const persistedBowItemId = toNumberOrNull(persistedBow?.fkItemidItem);
+					const persistedBowSlotIndex = toNumberOrNull(persistedBow?.slotIndex);
+					const matchedBowSlot = inventorySlots.find((slot) => {
+						const slotItemId = toNumberOrNull(slot.fkItemidItem);
+						const slotIndex = toNumberOrNull(slot.slotIndex);
+						return persistedBowItemId != null
+							&& slotItemId === persistedBowItemId
+							&& slotIndex === persistedBowSlotIndex
+							&& (toNumberOrNull(slot.quantity) ?? 0) > 0
+							&& isBowCategory(slot.itemCategory);
+					});
+
+					if (matchedBowSlot) {
+						const nextBowSlot = {
+							idPlayerInventorySlots: matchedBowSlot.idPlayerInventorySlots,
+							slotIndex: matchedBowSlot.slotIndex,
+							fkItemidItem: matchedBowSlot.fkItemidItem,
+							quantity: matchedBowSlot.quantity,
+							itemName: matchedBowSlot.itemName,
+							itemIcon: matchedBowSlot.itemIcon,
+							itemCategory: matchedBowSlot.itemCategory,
+						};
+						bowItemId = toNumberOrNull(nextBowSlot.fkItemidItem);
+
+						setBowSlot(nextBowSlot);
+						localStorage.setItem(COMBAT_BOW_ITEM_STORAGE_KEY, JSON.stringify(nextBowSlot));
+					} else {
+						setBowSlot(null);
+						setBowDamageBonus(0);
+						localStorage.removeItem(COMBAT_BOW_ITEM_STORAGE_KEY);
+					}
+
+					const persistedArrow = parseStoredSelection(COMBAT_ARROW_ITEM_STORAGE_KEY);
+					const persistedArrowItemId = toNumberOrNull(persistedArrow?.fkItemidItem);
+					const persistedArrowSlotIndex = toNumberOrNull(persistedArrow?.slotIndex);
+					const matchedArrowSlot = inventorySlots.find((slot) => {
+						const slotItemId = toNumberOrNull(slot.fkItemidItem);
+						const slotIndex = toNumberOrNull(slot.slotIndex);
+						return persistedArrowItemId != null
+							&& slotItemId === persistedArrowItemId
+							&& slotIndex === persistedArrowSlotIndex
+							&& (toNumberOrNull(slot.quantity) ?? 0) > 0
+							&& isArrowCategory(slot.itemCategory);
+					});
+
+					if (matchedArrowSlot) {
+						const nextArrowSlot = {
+							idPlayerInventorySlots: matchedArrowSlot.idPlayerInventorySlots,
+							slotIndex: matchedArrowSlot.slotIndex,
+							fkItemidItem: matchedArrowSlot.fkItemidItem,
+							quantity: matchedArrowSlot.quantity,
+							itemName: matchedArrowSlot.itemName,
+							itemIcon: matchedArrowSlot.itemIcon,
+							itemCategory: matchedArrowSlot.itemCategory,
+						};
+
+						setArrowSlot(nextArrowSlot);
+						localStorage.setItem(COMBAT_ARROW_ITEM_STORAGE_KEY, JSON.stringify(nextArrowSlot));
+					} else {
+						setArrowSlot(null);
+						localStorage.removeItem(COMBAT_ARROW_ITEM_STORAGE_KEY);
+					}
 
 					const itemIdCounts = new Map();
 					for (const row of equipmentRows) {
@@ -218,6 +421,9 @@ const Combat = () => {
 					}
 
 					let gearAndHeldDefense = 0;
+					let gearAndHeldDamage = 0;
+					let gearAndHeldStrength = 0;
+					let gearAndHeldCritDamage = 0;
 					if (defenseStatId != null && itemIdCounts.size > 0) {
 						const uniqueItemIds = [...itemIdCounts.keys()];
 						const itemStatsResponses = await Promise.all(uniqueItemIds.map((itemId) => axios.get('http://localhost:5091/api/Stats/GetItemStats', {
@@ -236,10 +442,53 @@ const Combat = () => {
 							const defenseEntry = itemStats.find((entry) => toNumberOrNull(entry.fkStatsidStats ?? entry.FkStatsidStats) === defenseStatId);
 							const defenseValue = toNumberOrNull(defenseEntry?.value ?? defenseEntry?.Value) ?? 0;
 							gearAndHeldDefense += defenseValue * count;
+
+							if (damageStatId != null) {
+								const damageEntry = itemStats.find((entry) => toNumberOrNull(entry.fkStatsidStats ?? entry.FkStatsidStats) === damageStatId);
+								const damageValue = toNumberOrNull(damageEntry?.value ?? damageEntry?.Value) ?? 0;
+								gearAndHeldDamage += damageValue * count;
+							}
+
+							if (strengthStatId != null) {
+								const strengthEntry = itemStats.find((entry) => toNumberOrNull(entry.fkStatsidStats ?? entry.FkStatsidStats) === strengthStatId);
+								const strengthValue = toNumberOrNull(strengthEntry?.value ?? strengthEntry?.Value) ?? 0;
+								gearAndHeldStrength += strengthValue * count;
+							}
+
+							if (critDamageStatId != null) {
+								const critDamageEntry = itemStats.find((entry) => toNumberOrNull(entry.fkStatsidStats ?? entry.FkStatsidStats) === critDamageStatId);
+								const critDamageValue = toNumberOrNull(critDamageEntry?.value ?? critDamageEntry?.Value) ?? 0;
+								gearAndHeldCritDamage += critDamageValue * count;
+							}
 						}
 					}
 
 					setPlayerDefense(Math.max(0, playerBaseDefense + gearAndHeldDefense));
+					setPlayerBaseDamage(Math.max(1, playerBaseDamageFromStats + gearAndHeldDamage, heldItemId == null ? 1 : 0));
+					setPlayerStrength(Math.max(0, playerBaseStrength + gearAndHeldStrength));
+					setPlayerCritDamage(Math.max(0, playerBaseCritDamage + gearAndHeldCritDamage));
+
+					if (bowItemId != null && damageStatId != null) {
+						try {
+							const bowStatsResponse = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+								params: { itemId: bowItemId },
+								validateStatus: (status) => status === 200 || status === 404,
+								headers: {
+									Accept: 'application/json',
+									...getAuthHeaders(),
+								},
+							});
+
+							const bowStats = Array.isArray(bowStatsResponse?.data) ? bowStatsResponse.data : [];
+							const bowDamageEntry = bowStats.find((entry) => toNumberOrNull(entry.fkStatsidStats ?? entry.FkStatsidStats) === damageStatId);
+							const bowDamageValue = toNumberOrNull(bowDamageEntry?.value ?? bowDamageEntry?.Value) ?? 0;
+							setBowDamageBonus(Math.max(0, bowDamageValue));
+						} catch {
+							setBowDamageBonus(0);
+						}
+					} else {
+						setBowDamageBonus(0);
+					}
 				}
 
 				setSelectedMobId((currentSelectedMobId) => currentSelectedMobId ?? normalizedMobs[0]?.idMob ?? null);
@@ -252,7 +501,7 @@ const Combat = () => {
 		};
 
 		fetchCombatData();
-	}, [equipmentRefreshTick, inventoryRefreshTick, playerId]);
+	}, [equipmentRefreshTick, heldItemRefreshTick, inventoryRefreshTick, playerId]);
 
 	const selectedMob = useMemo(
 		() => mobs.find((mob) => mob.idMob === selectedMobId) ?? null,
@@ -266,6 +515,52 @@ const Combat = () => {
 
 		return resolveIconPath(selectedMob.icon, BLOCK_TEXTURE_BY_FILE);
 	}, [selectedMob]);
+
+	useEffect(() => {
+		const fetchEnemyDefense = async () => {
+			if (!selectedMob?.idMob) {
+				setEnemyDefense(0);
+				return;
+			}
+
+			try {
+				const [statsResponse, mobStatsResponse] = await Promise.all([
+					axios.get('http://localhost:5091/api/Stats/GetStats', {
+						headers: {
+							Accept: 'application/json',
+							...getAuthHeaders(),
+						},
+					}),
+					axios.get('http://localhost:5091/api/Stats/GetMobStats', {
+						params: { mobId: selectedMob.idMob },
+						validateStatus: (status) => status === 200 || status === 404,
+						headers: {
+							Accept: 'application/json',
+							...getAuthHeaders(),
+						},
+					}),
+				]);
+
+				const allStats = Array.isArray(statsResponse.data) ? statsResponse.data : [];
+				const defenseStatDefinition = allStats.find((statDef) => (statDef.name ?? statDef.Name ?? '').toLowerCase().trim() === 'defense');
+				const defenseStatId = toNumberOrNull(defenseStatDefinition?.idStats ?? defenseStatDefinition?.IdStats);
+
+				if (defenseStatId == null || mobStatsResponse.status === 404 || !Array.isArray(mobStatsResponse.data)) {
+					setEnemyDefense(0);
+					return;
+				}
+
+				const mobDefenseEntry = mobStatsResponse.data.find((entry) => toNumberOrNull(entry.fkStatsidStats ?? entry.FkStatsidStats) === defenseStatId);
+				const mobDefenseValue = toNumberOrNull(mobDefenseEntry?.value ?? mobDefenseEntry?.Value) ?? 0;
+				setEnemyDefense(Math.max(0, mobDefenseValue));
+			} catch (fetchError) {
+				console.error('Failed to load mob defense:', fetchError);
+				setEnemyDefense(0);
+			}
+		};
+
+		fetchEnemyDefense();
+	}, [selectedMob?.idMob]);
 
 	const combatSkillDefinition = useMemo(
 		() => skills.find((skill) => (skill.name ?? skill.Name ?? '').trim().toLowerCase() === 'combat') ?? null,
@@ -295,13 +590,85 @@ const Combat = () => {
 	}, [matchedSkill, playerSkills]);
 
 	const playerSkillLevel = playerCombatSkill ? (toNumberOrNull(playerCombatSkill.level ?? playerCombatSkill.Level) ?? 0) : 0;
+	const bowItemCategory = bowSlot?.itemCategory ?? '';
+	const hasBowSelected = Boolean(bowSlot?.fkItemidItem && (toNumberOrNull(bowSlot?.quantity) ?? 0) > 0 && isBowCategory(bowItemCategory));
+	const hasArrowLoaded = Boolean(arrowSlot?.fkItemidItem && (toNumberOrNull(arrowSlot?.quantity) ?? 0) > 0 && isArrowCategory(arrowSlot?.itemCategory));
+	const canUseRanged = hasBowSelected && hasArrowLoaded;
+	const rangedRequirementMessage = hasBowSelected
+		? (hasArrowLoaded ? '' : 'Load arrows into the arrow slot to use ranged mode.')
+		: 'Load a bow into the bow slot, then load arrows.';
 
 	const pushLog = useCallback((message) => {
 		setBattleLog((prev) => [message, ...prev].slice(0, 10));
 	}, []);
 
+	const flushPendingArrowConsumption = useCallback(async () => {
+		const pending = pendingArrowConsumptionRef.current;
+		const pendingItemId = toNumberOrNull(pending.itemId);
+		const pendingQuantity = toNumberOrNull(pending.quantity) ?? 0;
+		if (!playerId || pendingItemId == null || pendingQuantity <= 0) {
+			return true;
+		}
+
+		try {
+			await axios.post('http://localhost:5091/api/Inventory/RemoveItemFromInventory', {
+				playerId,
+				itemId: pendingItemId,
+				quantity: pendingQuantity,
+			}, {
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
+
+			pendingArrowConsumptionRef.current = {
+				itemId: null,
+				quantity: 0,
+			};
+			return true;
+		} catch (flushError) {
+			console.error('Failed to flush pending arrow consumption:', flushError);
+			return false;
+		}
+	}, [playerId]);
+
+	useEffect(() => {
+		const flushOnUnload = () => {
+			const pending = pendingArrowConsumptionRef.current;
+			const pendingItemId = toNumberOrNull(pending.itemId);
+			const pendingQuantity = toNumberOrNull(pending.quantity) ?? 0;
+			if (!playerId || pendingItemId == null || pendingQuantity <= 0 || !navigator.sendBeacon) {
+				return;
+			}
+
+			const payload = JSON.stringify({
+				playerId,
+				itemId: pendingItemId,
+				quantity: pendingQuantity,
+			});
+			navigator.sendBeacon('http://localhost:5091/api/Inventory/RemoveItemFromInventory', new Blob([payload], { type: 'application/json' }));
+		};
+
+		window.addEventListener('beforeunload', flushOnUnload);
+		return () => window.removeEventListener('beforeunload', flushOnUnload);
+	}, [playerId]);
+
 	const startBattle = useCallback((mob, isAutoRestart = false) => {
 		if (!mob) {
+			return;
+		}
+
+		if (attackStyleRef.current === 'ranged' && !canUseRanged) {
+			const requirementMessage = hasBowSelected
+				? 'Load arrows into the arrow slot before starting ranged combat.'
+				: 'Load a bow into the bow slot before using ranged combat.';
+			if (hasBowSelected) {
+				setArrowSlotMessage(requirementMessage);
+			} else {
+				setBowSlotMessage(requirementMessage);
+			}
+			pushLog(requirementMessage);
 			return;
 		}
 
@@ -312,11 +679,57 @@ const Combat = () => {
 		setBattleLog((prev) => isAutoRestart ? prev : [`Engaged ${mob.name}.`, ...prev].slice(0, 10));
 		setLootResults([]);
 		setRewardMessage('');
+		setBowSlotMessage('');
+		setArrowSlotMessage('');
 		setIsRollingLoot(false);
 		setIsBattling(true);
 		playerHealthRef.current = playerMaxHealth;
 		enemyHealthRef.current = mob.baseHealth;
-	}, [playerMaxHealth]);
+	}, [canUseRanged, hasBowSelected, playerMaxHealth, pushLog]);
+
+	const consumeArrowForRangedShot = useCallback(() => {
+		const arrowItemId = toNumberOrNull(arrowSlot?.fkItemidItem);
+		if (arrowItemId == null) {
+			return false;
+		}
+
+		const pending = pendingArrowConsumptionRef.current;
+		if (pending.itemId == null) {
+			pendingArrowConsumptionRef.current = {
+				itemId: arrowItemId,
+				quantity: 1,
+			};
+		} else if (toNumberOrNull(pending.itemId) === arrowItemId) {
+			pendingArrowConsumptionRef.current = {
+				itemId: arrowItemId,
+				quantity: (toNumberOrNull(pending.quantity) ?? 0) + 1,
+			};
+		} else {
+			return false;
+		}
+
+		setArrowSlot((previousArrowSlot) => {
+			if (!previousArrowSlot) {
+				return previousArrowSlot;
+			}
+
+			const currentQty = toNumberOrNull(previousArrowSlot.quantity) ?? 0;
+			const nextQty = Math.max(0, currentQty - 1);
+			if (nextQty <= 0) {
+				localStorage.removeItem(COMBAT_ARROW_ITEM_STORAGE_KEY);
+				return null;
+			}
+
+			const nextArrowState = {
+				...previousArrowSlot,
+				quantity: nextQty,
+			};
+			localStorage.setItem(COMBAT_ARROW_ITEM_STORAGE_KEY, JSON.stringify(nextArrowState));
+			return nextArrowState;
+		});
+
+		return true;
+	}, [arrowSlot]);
 
 	const addLootToInventory = useCallback(async (lootDrops) => {
 		if (!playerId || !lootDrops.length) {
@@ -422,6 +835,8 @@ const Combat = () => {
 		setIsBattling(false);
 		setEnemyHealth(0);
 		enemyHealthRef.current = 0;
+		await flushPendingArrowConsumption();
+		setInventoryRefreshTick((prev) => prev + 1);
 
 		const drops = rollMobDrops(mob);
 		setIsRollingLoot(true);
@@ -450,7 +865,7 @@ const Combat = () => {
 				}
 			}, 900);
 		}
-	}, [grantCombatRewards, pushLog, rollMobDrops, startBattle]);
+	}, [flushPendingArrowConsumption, grantCombatRewards, pushLog, rollMobDrops, startBattle]);
 
 	const performAttack = useCallback(async (styleOverride = null) => {
 		if (attackLockRef.current) {
@@ -464,8 +879,42 @@ const Combat = () => {
 
 		attackLockRef.current = true;
 		const styleKey = styleOverride ?? attackStyleRef.current;
+		if (styleKey === 'ranged' && !canUseRanged) {
+			const requirementMessage = hasBowSelected
+				? 'Load arrows into the arrow slot before using ranged attacks.'
+				: 'Load a bow into the bow slot before using ranged attacks.';
+			if (hasBowSelected) {
+				setArrowSlotMessage(requirementMessage);
+			} else {
+				setBowSlotMessage(requirementMessage);
+			}
+			pushLog(requirementMessage);
+			attackLockRef.current = false;
+			return;
+		}
+
+		if (styleKey === 'ranged') {
+			setBowSlotMessage('');
+			setArrowSlotMessage('');
+			const hasConsumedArrow = await consumeArrowForRangedShot();
+			if (!hasConsumedArrow) {
+				setArrowSlotMessage('You do not have enough arrows to shoot.');
+				pushLog('Ranged shot failed: out of arrows.');
+				attackLockRef.current = false;
+				return;
+			}
+		}
+
 		const style = ATTACK_STYLES[styleKey] ?? ATTACK_STYLES.melee;
-		const playerDamage = rollInteger(style.baseMin, style.baseMax);
+		const computedBaseDamage = styleKey === 'ranged'
+			? Math.max(1, playerBaseDamage + bowDamageBonus)
+			: playerBaseDamage;
+		const playerDamage = calculatePlayerHitDamage({
+			baseDamage: computedBaseDamage,
+			strength: playerStrength,
+			critDamage: playerCritDamage,
+			enemyDefense,
+		});
 		const nextEnemyHealth = Math.max(0, enemyHealthRef.current - playerDamage);
 		enemyHealthRef.current = nextEnemyHealth;
 		setEnemyHealth(nextEnemyHealth);
@@ -477,21 +926,33 @@ const Combat = () => {
 			return;
 		}
 
-		const mitigatedDamage = calculateMitigatedDamage(mob.baseDamage, playerDefense);
-		const nextPlayerHealth = Math.max(0, playerHealthRef.current - mitigatedDamage);
+		let incomingDamage = calculateMitigatedDamage(mob.baseDamage, playerDefense);
+		if (styleKey === 'ranged' && canUseRanged) {
+			const dodgeChance = 0.35;
+			if (Math.random() < dodgeChance) {
+				pushLog(`${mob.name} missed you while you kept distance.`);
+				attackLockRef.current = false;
+				return;
+			}
+
+			incomingDamage = Math.max(1, Math.floor(incomingDamage * 0.45));
+		}
+
+		const nextPlayerHealth = Math.max(0, playerHealthRef.current - incomingDamage);
 		playerHealthRef.current = nextPlayerHealth;
 		setPlayerHealth(nextPlayerHealth);
-		//pushLog(`${mob.name} hit you for ${mitigatedDamage} (${Math.max(1, mob.baseDamage)} raw, ${playerDefense} DEF).`);
-		pushLog(`${mob.name} hit you for ${mitigatedDamage}`);
+		pushLog(`${mob.name} hit you for ${incomingDamage}`);
 
 		if (nextPlayerHealth <= 0) {
+			await flushPendingArrowConsumption();
+			setInventoryRefreshTick((prev) => prev + 1);
 			setIsBattling(false);
 			setRewardMessage(`You were defeated by ${mob.name}.`);
 			pushLog(`Defeated by ${mob.name}.`);
 		}
 
 		attackLockRef.current = false;
-	}, [finishBattle, playerDefense, pushLog]);
+	}, [bowDamageBonus, canUseRanged, consumeArrowForRangedShot, enemyDefense, finishBattle, flushPendingArrowConsumption, hasBowSelected, playerBaseDamage, playerCritDamage, playerDefense, playerStrength, pushLog]);
 
 	useEffect(() => {
 		if (!isBattling || battleMode === 'manual') {
@@ -507,16 +968,118 @@ const Combat = () => {
 	}, [attackStyle, battleMode, isBattling, performAttack]);
 
 	const selectedMobLabel = selectedMob ? `${selectedMob.name} (${selectedMob.mobType})` : 'No mob selected';
+	const selectedMobLocation = selectedMob?.location?.trim() || 'Unknown';
 	const selectedMobIconPath = selectedMobIcon || '';
+	const isMeleeStyleSelected = attackStyle === 'melee';
+	const isRangedStyleSelected = attackStyle === 'ranged';
 	const canManualAttack = battleMode !== 'auto';
 	const canAutoBattle = battleMode !== 'manual';
 	const currentPlayerCombatLevel = playerSkillLevel;
-	const effectiveHealth = useMemo(
-		() => calculateEffectiveHealth(playerMaxHealth, playerDefense),
-		[playerDefense, playerMaxHealth]
-	);
 	const selectedMobDrops = selectedMob?.drops ?? [];
 	const canShowMobDrops = selectedMobDrops.length > 0;
+	const isRangedStartBlocked = attackStyle === 'ranged' && !canUseRanged;
+
+	const mobsByLocation = useMemo(() => {
+		const grouped = new Map();
+
+		for (const mob of mobs) {
+			const location = mob?.location?.trim() || 'Unknown';
+			if (!grouped.has(location)) {
+				grouped.set(location, []);
+			}
+
+			grouped.get(location).push(mob);
+		}
+
+		return [...grouped.entries()]
+			.map(([location, groupedMobs]) => ({
+				location,
+				mobs: groupedMobs,
+			}))
+			.sort((a, b) => a.location.localeCompare(b.location));
+	}, [mobs]);
+
+	const handleSelectMob = (mobId) => {
+		setSelectedMobId(mobId);
+		setIsMobSelectModalOpen(false);
+	};
+
+	const handleLoadBow = useCallback(() => {
+		const selectedInventoryItem = parseStoredSelection(SELLING_SELECTED_ITEM_STORAGE_KEY);
+		const quantity = toNumberOrNull(selectedInventoryItem?.quantity) ?? 0;
+
+		if (!selectedInventoryItem?.fkItemidItem || quantity <= 0) {
+			setBowSlotMessage('Select an inventory item first, then load it as a bow.');
+			return;
+		}
+
+		if (!isBowCategory(selectedInventoryItem?.itemCategory)) {
+			setBowSlotMessage('Selected item is not a Bow.');
+			return;
+		}
+
+		const nextBowSlot = {
+			idPlayerInventorySlots: selectedInventoryItem.idPlayerInventorySlots,
+			slotIndex: selectedInventoryItem.slotIndex,
+			fkItemidItem: selectedInventoryItem.fkItemidItem,
+			quantity,
+			itemName: selectedInventoryItem.itemName ?? '',
+			itemIcon: selectedInventoryItem.itemIcon ?? '',
+			itemCategory: selectedInventoryItem.itemCategory ?? '',
+		};
+
+		setBowSlot(nextBowSlot);
+		localStorage.setItem(COMBAT_BOW_ITEM_STORAGE_KEY, JSON.stringify(nextBowSlot));
+		setBowSlotMessage('');
+	}, []);
+
+	const handleClearBow = useCallback(() => {
+		setBowSlot(null);
+		localStorage.removeItem(COMBAT_BOW_ITEM_STORAGE_KEY);
+		setBowSlotMessage('');
+	}, []);
+
+	const handleLoadArrows = useCallback(async () => {
+		const selectedInventoryItem = parseStoredSelection(SELLING_SELECTED_ITEM_STORAGE_KEY);
+		const quantity = toNumberOrNull(selectedInventoryItem?.quantity) ?? 0;
+
+		if (!selectedInventoryItem?.fkItemidItem || quantity <= 0) {
+			setArrowSlotMessage('Select an inventory item first, then load it as arrows.');
+			return;
+		}
+
+		if (!isArrowCategory(selectedInventoryItem?.itemCategory)) {
+			setArrowSlotMessage('Selected item is not an arrow stack.');
+			return;
+		}
+
+		await flushPendingArrowConsumption();
+		setInventoryRefreshTick((prev) => prev + 1);
+
+		const nextArrowSlot = {
+			idPlayerInventorySlots: selectedInventoryItem.idPlayerInventorySlots,
+			slotIndex: selectedInventoryItem.slotIndex,
+			fkItemidItem: selectedInventoryItem.fkItemidItem,
+			quantity,
+			itemName: selectedInventoryItem.itemName ?? '',
+			itemIcon: selectedInventoryItem.itemIcon ?? '',
+			itemCategory: selectedInventoryItem.itemCategory ?? '',
+		};
+
+		setArrowSlot(nextArrowSlot);
+		localStorage.setItem(COMBAT_ARROW_ITEM_STORAGE_KEY, JSON.stringify(nextArrowSlot));
+		setArrowSlotMessage('');
+	}, [flushPendingArrowConsumption]);
+
+	const handleClearArrows = useCallback(async () => {
+		await flushPendingArrowConsumption();
+		setInventoryRefreshTick((prev) => prev + 1);
+		setArrowSlot(null);
+		localStorage.removeItem(COMBAT_ARROW_ITEM_STORAGE_KEY);
+		setArrowSlotMessage('');
+	}, [flushPendingArrowConsumption]);
+
+	const resolveCombatIcon = useCallback((iconPath) => resolveIconPath(iconPath, BLOCK_TEXTURE_BY_FILE), []);
 
 	return (
 		<div className="combat-page-layout">
@@ -524,7 +1087,6 @@ const Combat = () => {
 				<header className="combat-header">
 					<div>
 						<h1>Combat</h1>
-						<p>Hybrid melee and ranged combat with auto-battler support.</p>
 					</div>
 					<div className="combat-battle-modes">
 						{battleModes.map((mode) => (
@@ -543,144 +1105,57 @@ const Combat = () => {
 				{isLoading ? <p className="combat-status">Loading combat data...</p> : null}
 				{error ? <p className="combat-status combat-status-error">{error}</p> : null}
 
-				<section className="combat-roster" aria-label="Available mobs">
-					{mobs.map((mob) => {
-						const mobIcon = mob.icon ? resolveIconPath(mob.icon, BLOCK_TEXTURE_BY_FILE) : '';
-						const isSelected = mob.idMob === selectedMobId;
-
-						return (
-							<button
-								type="button"
-								key={mob.idMob}
-								className={`combat-mob-card ${isSelected ? 'selected' : ''}`}
-								onClick={() => setSelectedMobId(mob.idMob)}
-							>
-								<div className="combat-mob-card-icon">
-									{mobIcon ? <img src={mobIcon} alt={mob.name} /> : <span>{mob.name.slice(0, 2)}</span>}
-								</div>
-								<div className="combat-mob-card-body">
-									<strong>{mob.name}</strong>
-									<p>{mob.location || mob.mobType}</p>
-									<small>HP {mob.baseHealth} | DMG {mob.baseDamage}</small>
-								</div>
-							</button>
-						);
-					})}
+				<section className="combat-mob-selector" aria-label="Mob selection controls">
+					<div className="combat-mob-selector-main">
+						<div className="combat-mob-card-icon">
+							{selectedMobIconPath ? <img src={selectedMobIconPath} alt={selectedMob?.name ?? 'Mob'} /> : <span>{selectedMob?.name?.slice(0, 2) ?? '??'}</span>}
+						</div>
+						<div>
+							<strong>{selectedMob?.name ?? 'No mob selected'}</strong>
+							<p>{selectedMob ? `${selectedMobLocation} • HP ${selectedMob.baseHealth} • DMG ${selectedMob.baseDamage}` : 'Select a mob to begin combat.'}</p>
+						</div>
+					</div>
+					<button type="button" className="combat-action-button" onClick={() => setIsMobSelectModalOpen(true)}>
+						Select Mob
+					</button>
 				</section>
 
-				<section className="combat-arena" aria-label="Combat arena">
-					<div className="combat-arena-top">
-						<div className="combat-creature-card">
-							<div className="combat-creature-portrait">
-								{selectedMobIconPath ? <img src={selectedMobIconPath} alt={selectedMob?.name ?? 'Mob'} /> : <span>{selectedMob?.name?.slice(0, 2) ?? '??'}</span>}
-							</div>
-							<div>
-								<h2>{selectedMobLabel}</h2>
-								<p>Skill XP: {selectedMob?.skillXpTypeName || 'None'} {selectedMob?.skillXpAmount ? `+${selectedMob.skillXpAmount}` : ''}</p>
-							</div>
-						</div>
-
-						<div className="combat-stat-grid">
-							<article>
-								<span>Player HP</span>
-								<strong>{playerHealth}/{playerMaxHealth}</strong>
-								{/*<small className="combat-stat-meta">EHP {effectiveHealth}</small>*/}
-							</article>
-							<article>
-								<span>Enemy HP</span>
-								<strong>{enemyHealth}/{selectedMob?.baseHealth ?? 0}</strong>
-							</article>
-							<article>
-								<span>Combat Skill</span>
-								<strong>{currentPlayerCombatLevel > 0 ? `Level ${currentPlayerCombatLevel}` : 'Untrained'}</strong>
-							</article>
-						</div>
-					</div>
-
-					<div className="combat-hp-shell">
-						<div className="combat-hp-fill combat-hp-fill-player" style={{ width: `${playerMaxHealth > 0 ? Math.max(0, Math.min(100, (playerHealth / playerMaxHealth) * 100)) : 0}%` }} />
-					</div>
-					<div className="combat-hp-shell enemy-shell">
-						<div className="combat-hp-fill combat-hp-fill-enemy" style={{ width: `${selectedMob?.baseHealth ? Math.max(0, Math.min(100, (enemyHealth / selectedMob.baseHealth) * 100)) : 0}%` }} />
-					</div>
-
-					<div className="combat-controls">
-						<div className="combat-style-switch">
-							{Object.entries(ATTACK_STYLES).map(([styleKey, style]) => (
-								<button
-									key={styleKey}
-									type="button"
-									className={`combat-style-button ${attackStyle === styleKey ? 'active' : ''}`}
-									onClick={() => setAttackStyle(styleKey)}
-								>
-									{style.label}
-								</button>
-							))}
-						</div>
-
-						<div className="combat-action-row">
-							<button type="button" className="combat-action-button primary" disabled={!selectedMob || isBattling} onClick={() => startBattle(selectedMob)}>
-								Start Fight
-							</button>
-							<button type="button" className="combat-action-button" disabled={!isBattling || !canManualAttack} onClick={() => performAttack('melee')}>
-								Melee Attack
-							</button>
-							<button type="button" className="combat-action-button" disabled={!isBattling || !canManualAttack} onClick={() => performAttack('ranged')}>
-								Ranged Shot
-							</button>
-							<button type="button" className="combat-action-button secondary" disabled={!isBattling || !canAutoBattle} onClick={() => setBattleMode('manual')}>
-								Stop Auto
-							</button>
-						</div>
-
-						{rewardMessage ? <p className="combat-reward-message">{rewardMessage}</p> : null}
-						{isRollingLoot ? <p className="combat-loot-status">Rolling drops...</p> : null}
-					</div>
-
-					<section className="combat-loot-panel" aria-label="Loot rolls">
-						<div className="combat-loot-panel-header">
-							<h3>Drop Roll</h3>
-							<button
-								type="button"
-								className="combat-action-button"
-								onClick={() => setIsDropsModalOpen(true)}
-								disabled={!selectedMob}
-							>
-								View Mob Drops
-							</button>
-						</div>
-						{lootResults.length > 0 ? (
-							<div className="combat-loot-list">
-								{lootResults.map((loot) => {
-									const lootIcon = loot.itemIcon ? (resolveIconPath(loot.itemIcon, BLOCK_TEXTURE_BY_FILE)) : '';
-									const quantityRangeText = formatDropQuantityRange(loot.minQuantity, loot.maxQuantity);
-									return (
-										<div className="combat-loot-item" key={`${loot.itemId}-${loot.itemName}`}>
-											<div className="combat-loot-icon">{lootIcon ? <img src={lootIcon} alt={loot.itemName} /> : <span>{loot.itemName.slice(0, 2)}</span>}</div>
-											<div>
-												<strong>{loot.itemName}</strong>
-												<p>x{loot.quantity} (range {quantityRangeText})</p>
-											</div>
-										</div>
-									);
-								})}
-							</div>
-						) : (
-							<p className="combat-empty-state">No loot rolled yet.</p>
-						)}
-					</section>
-
-					<section className="combat-log-panel" aria-label="Battle log">
-						<h3>Battle Log</h3>
-						{battleLog.length > 0 ? (
-							<ul>
-								{battleLog.map((entry, index) => <li key={`${index}-${entry}`}>{entry}</li>)}
-							</ul>
-						) : (
-							<p className="combat-empty-state">No combat actions yet.</p>
-						)}
-					</section>
-				</section>
+				<CombatBattle
+					selectedMob={selectedMob}
+					selectedMobIconPath={selectedMobIconPath}
+					attackStyle={attackStyle}
+					setAttackStyle={setAttackStyle}
+					isBattling={isBattling}
+					canManualAttack={canManualAttack}
+					canAutoBattle={canAutoBattle}
+					isRangedStartBlocked={isRangedStartBlocked}
+					canUseRanged={canUseRanged}
+					isMeleeStyleSelected={isMeleeStyleSelected}
+					isRangedStyleSelected={isRangedStyleSelected}
+					currentPlayerCombatLevel={currentPlayerCombatLevel}
+					playerHealth={playerHealth}
+					playerMaxHealth={playerMaxHealth}
+					enemyHealth={enemyHealth}
+					onStartBattle={startBattle}
+					onPerformAttack={performAttack}
+					onStopAuto={() => setBattleMode('manual')}
+					onOpenDropsModal={() => setIsDropsModalOpen(true)}
+					selectedMobDrops={selectedMobDrops}
+					canShowMobDrops={canShowMobDrops}
+					lootResults={lootResults}
+					battleLog={battleLog}
+					rewardMessage={rewardMessage}
+					isRollingLoot={isRollingLoot}
+					bowSlot={bowSlot}
+					arrowSlot={arrowSlot}
+					bowSlotMessage={bowSlotMessage}
+					arrowSlotMessage={arrowSlotMessage}
+					onLoadBow={handleLoadBow}
+					onClearBow={handleClearBow}
+					onLoadArrows={handleLoadArrows}
+					onClearArrows={handleClearArrows}
+					resolveIcon={resolveCombatIcon}
+				/>
 			</section>
 
 			<aside className="combat-side-panel" aria-label="Inventory and equipment panel">
@@ -719,7 +1194,7 @@ const Combat = () => {
 							<ul className="combat-modal-drop-list">
 								{selectedMobDrops.map((drop) => {
 									const dropIcon = drop.itemIcon ? resolveIconPath(drop.itemIcon, BLOCK_TEXTURE_BY_FILE) : '';
-									const chance = `${(Number(drop.dropChance ?? 0) * 100).toFixed(2)}%`;
+									const chance = formatDropChancePercent(drop.dropChance);
 									const quantity = formatDropQuantityRange(drop.minQuantity, drop.maxQuantity);
 
 									return (
@@ -737,6 +1212,57 @@ const Combat = () => {
 						) : (
 							<p className="combat-empty-state">No configured drops for this mob.</p>
 						)}
+					</div>
+				</div>
+			) : null}
+
+			{isMobSelectModalOpen ? (
+				<div className="combat-modal-backdrop" role="presentation" onClick={() => setIsMobSelectModalOpen(false)}>
+					<div
+						className="combat-modal"
+						role="dialog"
+						aria-modal="true"
+						aria-label="Mob selector"
+						onClick={(event) => event.stopPropagation()}
+					>
+						<div className="combat-modal-header">
+							<h3>Select Mob</h3>
+							<button type="button" className="combat-action-button secondary" onClick={() => setIsMobSelectModalOpen(false)}>
+								Close
+							</button>
+						</div>
+
+						<div className="combat-mob-location-list">
+							{mobsByLocation.map((group) => (
+								<section key={group.location} className="combat-mob-location-group" aria-label={`${group.location} mobs`}>
+									<h4>{group.location}</h4>
+									<div className="combat-roster">
+										{group.mobs.map((mob) => {
+											const mobIcon = mob.icon ? resolveIconPath(mob.icon, BLOCK_TEXTURE_BY_FILE) : '';
+											const isSelected = mob.idMob === selectedMobId;
+
+											return (
+												<button
+													type="button"
+													key={mob.idMob}
+													className={`combat-mob-card ${isSelected ? 'selected' : ''}`}
+													onClick={() => handleSelectMob(mob.idMob)}
+												>
+													<div className="combat-mob-card-icon">
+														{mobIcon ? <img src={mobIcon} alt={mob.name} /> : <span>{mob.name.slice(0, 2)}</span>}
+													</div>
+													<div className="combat-mob-card-body">
+														<strong>{mob.name}</strong>
+														<p>{mob.location || mob.mobType}</p>
+														<small>HP {mob.baseHealth} | DMG {mob.baseDamage}</small>
+													</div>
+												</button>
+											);
+										})}
+									</div>
+								</section>
+							))}
+						</div>
 					</div>
 				</div>
 			) : null}

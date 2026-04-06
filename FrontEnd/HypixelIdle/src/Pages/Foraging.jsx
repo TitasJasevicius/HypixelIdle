@@ -13,6 +13,7 @@ import ForagingHeader from '../Components/ForagingHeader';
 import ForagingZoneSelectModal from '../Components/ForagingZoneSelectModal';
 import ForagingNodeSelectModal from '../Components/ForagingNodeSelectModal';
 import SellingTab from '../Components/SellingTab';
+import { rollHitsForClick, useCalculateForagingSpeed } from '../Components/CalculateGatheringSpeed';
 import {
 	BLOCK_TEXTURE_BY_FILE,
 	DEFAULT_BLOCK_HEALTH,
@@ -96,6 +97,7 @@ const Foraging = () => {
 	const [activeApplePosition, setActiveApplePosition] = useState(null);
 	const [isCollectingApple, setIsCollectingApple] = useState(false);
 	const [fruitSpecialCombo, setFruitSpecialCombo] = useState(loadForagingFruitCombo);
+	const { foragingHitsConfig } = useCalculateForagingSpeed();
 	const handleInventoryChanged = useCallback(() => {
 		setInventoryRefreshTick((prev) => prev + 1);
 	}, []);
@@ -503,9 +505,14 @@ const Foraging = () => {
 		}
 
 		const maxHealth = selectedNode.nodeHealth || DEFAULT_BLOCK_HEALTH;
+		const hitsThisClick = rollHitsForClick(foragingHitsConfig);
 
-		if (blockHealth > 1) {
-			setBlockHealth((prev) => prev - 1);
+		if (hitsThisClick <= 0) {
+			return;
+		}
+
+		if (blockHealth > hitsThisClick) {
+			setBlockHealth((prev) => Math.max(0, prev - hitsThisClick));
 			return;
 		}
 

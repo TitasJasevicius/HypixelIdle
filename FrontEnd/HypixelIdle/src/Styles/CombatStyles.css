@@ -83,6 +83,33 @@
 	gap: 0.5rem;
 }
 
+.combat-mob-selector {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	border: 1px solid rgba(141, 215, 255, 0.24);
+	border-radius: 0.8rem;
+	background: rgba(9, 20, 29, 0.8);
+}
+
+.combat-mob-selector-main {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.combat-mob-selector strong {
+	display: block;
+	margin-bottom: 0.15rem;
+}
+
+.combat-mob-selector p {
+	margin: 0;
+	color: #b8cce2;
+}
+
 .combat-mob-card {
 	display: flex;
 	gap: 0.75rem;
@@ -223,6 +250,59 @@
 	gap: 0.75rem;
 }
 
+.combat-ranged-setup {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.6rem;
+}
+
+.combat-ranged-slot-card {
+	display: grid;
+	gap: 0.35rem;
+	padding: 0.7rem;
+	border-radius: 0.7rem;
+	border: 1px solid rgba(141, 215, 255, 0.2);
+	background: rgba(8, 17, 25, 0.78);
+}
+
+.combat-ranged-slot-card span {
+	font-size: 0.78rem;
+	color: #adc4da;
+}
+
+.combat-ranged-slot-card strong {
+	line-height: 1.2;
+}
+
+.combat-ranged-slot-card small {
+	color: #9fc3df;
+	font-size: 0.8rem;
+}
+
+.combat-arrow-slot-main {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+}
+
+.combat-arrow-slot-actions {
+	display: flex;
+	gap: 0.45rem;
+	flex-wrap: wrap;
+}
+
+.combat-arrow-slot-message {
+	margin: 0;
+	font-size: 0.88rem;
+	color: #ffb7b7;
+}
+
+.combat-ranged-hint {
+	margin: 0;
+	font-size: 0.88rem;
+	color: #f5c48b;
+}
+
 .combat-action-row .combat-action-button:disabled,
 .combat-mode-button:disabled,
 .combat-style-button:disabled {
@@ -337,6 +417,17 @@
 	gap: 0.55rem;
 }
 
+.combat-mob-location-list {
+	display: grid;
+	gap: 0.9rem;
+}
+
+.combat-mob-location-group h4 {
+	margin: 0 0 0.5rem;
+	font-size: 0.95rem;
+	color: #c7ddf2;
+}
+
 .combat-modal-drop-item {
 	display: grid;
 	grid-template-columns: auto 1fr auto;
@@ -380,6 +471,10 @@
 		grid-template-columns: 1fr;
 	}
 
+	.combat-ranged-setup {
+		grid-template-columns: 1fr;
+	}
+
 	.combat-side-panel {
 		grid-template-columns: 1fr;
 	}
@@ -388,6 +483,11 @@
 @media (max-width: 720px) {
 	.combat-header,
 	.combat-arena-top {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.combat-mob-selector {
 		flex-direction: column;
 		align-items: stretch;
 	}

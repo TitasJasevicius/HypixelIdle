@@ -120,6 +120,24 @@ namespace HypixelidleBackEnd.Controllers
 
             return Ok(playerStats);
         }
+
+        [HttpGet]
+        [Route("GetMobStats")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<Entitystat>>> GetMobStats(int mobId)
+        {
+            var mobStats = await _context.Entitystats
+                .AsNoTracking()
+                .Where(s => s.FkMobidMob == mobId)
+                .ToListAsync();
+
+            if (mobStats == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(mobStats);
+        }
     }
 
 }
