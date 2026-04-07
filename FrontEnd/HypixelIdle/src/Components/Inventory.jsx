@@ -71,9 +71,25 @@ const resolveIconPath = (iconPath) => {
 		.replace(/^assets\/blocks\//, '');
 
 	const hasFileExtension = /\.(png|jpe?g|webp|gif|svg)$/i.test(pathWithoutPrefix);
-	const fileName = (hasFileExtension ? pathWithoutPrefix : `${pathWithoutPrefix}.png`).split('/').pop();
+	const fileName = pathWithoutPrefix.split('/').pop();
 
-	return fileName ? (BLOCK_TEXTURE_BY_FILE[fileName] ?? '') : '';
+	if (!fileName) {
+		return '';
+	}
+
+	if (hasFileExtension) {
+		return BLOCK_TEXTURE_BY_FILE[fileName] ?? '';
+	}
+
+	const extensionCandidates = ['png', 'gif', 'webp', 'jpg', 'jpeg', 'svg'];
+	for (const extension of extensionCandidates) {
+		const candidate = `${fileName}.${extension}`;
+		if (BLOCK_TEXTURE_BY_FILE[candidate]) {
+			return BLOCK_TEXTURE_BY_FILE[candidate];
+		}
+	}
+
+	return '';
 };
 
 const Inventory = ({

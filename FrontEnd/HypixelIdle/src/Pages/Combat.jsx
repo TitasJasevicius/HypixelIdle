@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import Inventory from '../Components/Inventory';
 import PlayerEquipment from '../Components/PlayerEquipment';
-import CombatRangedSetup from '../Components/CombatRangedSetup';
 import CombatBattle from '../Components/CombatBattle';
 import { BLOCK_TEXTURE_BY_FILE, getAuthHeaders, resolveIconPath, toNumberOrNull } from '../Components/MiningUtils';
 import {
@@ -21,6 +20,7 @@ import '../Styles/CombatStyles.css';
 import '../Styles/InventoryStyles.css';
 
 const COMBAT_HELD_ITEM_STORAGE_KEY = 'combatHeldInventoryItem';
+const COMBAT_MELEE_ITEM_STORAGE_KEY = 'combatMeleeInventoryItem';
 const COMBAT_BOW_ITEM_STORAGE_KEY = 'combatBowInventoryItem';
 const COMBAT_ARROW_ITEM_STORAGE_KEY = 'combatArrowInventoryItem';
 const SELLING_SELECTED_ITEM_STORAGE_KEY = 'sellingSelectedInventoryItem';
@@ -30,6 +30,20 @@ const toCategoryKey = (value) => (value ?? '').toString().trim().toLowerCase();
 const isBowCategory = (category) => toCategoryKey(category) === 'combat_weapon_bows';
 
 const isArrowCategory = (category) => toCategoryKey(category).includes('arrow');
+
+const isMeleeWeaponCategory = (category) => {
+	const normalized = toCategoryKey(category);
+	return normalized.includes('combat_weapon') && !isBowCategory(normalized) && !isArrowCategory(normalized);
+};
+
+const formatLocationLabel = (location) => {
+	const normalized = (location ?? '').toString().trim();
+	if (!normalized) {
+		return 'Unknown';
+	}
+
+	return normalized.replace(/_/g, ' ');
+};
 
 const normalizeInventorySlot = (slot) => ({
 	idPlayerInventorySlots: toNumberOrNull(slot.idPlayerInventorySlots ?? slot.IdPlayerInventorySlots),
@@ -70,8 +84,9 @@ const Combat = () => {
 	const [playerBaseDamage, setPlayerBaseDamage] = useState(1);
 	const [playerStrength, setPlayerStrength] = useState(0);
 	const [playerCritDamage, setPlayerCritDamage] = useState(0);
+	const [meleeWeaponDamageBonus, setMeleeWeaponDamageBonus] = useState(0);
 	const [bowDamageBonus, setBowDamageBonus] = useState(0);
-	const [, setHeldItem] = useState(() => parseStoredSelection(COMBAT_HELD_ITEM_STORAGE_KEY));
+	const [meleeSlot, setMeleeSlot] = useState(() => parseStoredSelection(COMBAT_MELEE_ITEM_STORAGE_KEY));
 	const [bowSlot, setBowSlot] = useState(() => parseStoredSelection(COMBAT_BOW_ITEM_STORAGE_KEY));
 	const [arrowSlot, setArrowSlot] = useState(() => parseStoredSelection(COMBAT_ARROW_ITEM_STORAGE_KEY));
 	const [enemyDefense, setEnemyDefense] = useState(0);
@@ -81,11 +96,13 @@ const Combat = () => {
 	const [battleLog, setBattleLog] = useState([]);
 	const [lootResults, setLootResults] = useState([]);
 	const [rewardMessage, setRewardMessage] = useState('');
+	const [meleeSlotMessage, setMeleeSlotMessage] = useState('');
 	const [bowSlotMessage, setBowSlotMessage] = useState('');
 	const [arrowSlotMessage, setArrowSlotMessage] = useState('');
 	const [isRollingLoot, setIsRollingLoot] = useState(false);
 	const [isDropsModalOpen, setIsDropsModalOpen] = useState(false);
 	const [isMobSelectModalOpen, setIsMobSelectModalOpen] = useState(false);
+	const [collapsedLocationGroups, setCollapsedLocationGroups] = useState({});
 	const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
 	const [equipmentRefreshTick, setEquipmentRefreshTick] = useState(0);
 	const selectedMobRef = useRef(null);
@@ -138,7 +155,10 @@ const Combat = () => {
 		};
 
 		const onStorageSync = (event) => {
-			if (event?.key === COMBAT_HELD_ITEM_STORAGE_KEY || event?.key === COMBAT_BOW_ITEM_STORAGE_KEY || event?.key === COMBAT_ARROW_ITEM_STORAGE_KEY) {
+			if (event?.key === COMBAT_HELD_ITEM_STORAGE_KEY
+				|| event?.key === COMBAT_MELEE_ITEM_STORAGE_KEY
+				|| event?.key === COMBAT_BOW_ITEM_STORAGE_KEY
+				|| event?.key === COMBAT_ARROW_ITEM_STORAGE_KEY) {
 				setHeldItemRefreshTick((prev) => prev + 1);
 			}
 		};
@@ -316,32 +336,40 @@ const Combat = () => {
 						? inventoryResponse.data.map(normalizeInventorySlot)
 						: [];
 
-					const parsedHeldItem = parseStoredSelection(COMBAT_HELD_ITEM_STORAGE_KEY);
-					const storedHeldItemId = toNumberOrNull(parsedHeldItem?.fkItemidItem);
+					const persistedMelee = parseStoredSelection(COMBAT_MELEE_ITEM_STORAGE_KEY);
+					const persistedMeleeItemId = toNumberOrNull(persistedMelee?.fkItemidItem);
+					const persistedMeleeSlotIndex = toNumberOrNull(persistedMelee?.slotIndex);
+					const matchedMeleeSlot = inventorySlots.find((slot) => {
+						const slotItemId = toNumberOrNull(slot.fkItemidItem);
+						const slotIndex = toNumberOrNull(slot.slotIndex);
+						return persistedMeleeItemId != null
+							&& slotItemId === persistedMeleeItemId
+							&& slotIndex === persistedMeleeSlotIndex
+							&& (toNumberOrNull(slot.quantity) ?? 0) > 0
+							&& isMeleeWeaponCategory(slot.itemCategory);
+					});
 
-					const heldSlotBySelection = storedHeldItemId == null
-						? null
-						: inventorySlots.find((slot) => {
-							const itemId = toNumberOrNull(slot.fkItemidItem);
-							const quantity = toNumberOrNull(slot.quantity) ?? 0;
-							return itemId === storedHeldItemId && quantity > 0;
-						});
-
-					const heldSlot = heldSlotBySelection ?? inventorySlots.find((slot) => toNumberOrNull(slot.slotIndex) === 0);
-					const heldItemId = toNumberOrNull(heldSlot?.fkItemidItem);
+					const meleeItemId = toNumberOrNull(matchedMeleeSlot?.fkItemidItem);
 					let bowItemId = null;
 
-					setHeldItem(heldSlot && heldItemId != null
-						? {
-							idPlayerInventorySlots: heldSlot.idPlayerInventorySlots,
-							slotIndex: heldSlot.slotIndex,
-							fkItemidItem: heldItemId,
-							itemName: heldSlot.itemName ?? parsedHeldItem?.itemName ?? '',
-							itemIcon: heldSlot.itemIcon ?? parsedHeldItem?.itemIcon ?? '',
-							itemCategory: heldSlot.itemCategory ?? parsedHeldItem?.itemCategory ?? '',
-							quantity: toNumberOrNull(heldSlot.quantity) ?? 0,
-						}
-						: null);
+					if (matchedMeleeSlot) {
+						const nextMeleeSlot = {
+							idPlayerInventorySlots: matchedMeleeSlot.idPlayerInventorySlots,
+							slotIndex: matchedMeleeSlot.slotIndex,
+							fkItemidItem: matchedMeleeSlot.fkItemidItem,
+							quantity: matchedMeleeSlot.quantity,
+							itemName: matchedMeleeSlot.itemName,
+							itemIcon: matchedMeleeSlot.itemIcon,
+							itemCategory: matchedMeleeSlot.itemCategory,
+						};
+
+						setMeleeSlot(nextMeleeSlot);
+						localStorage.setItem(COMBAT_MELEE_ITEM_STORAGE_KEY, JSON.stringify(nextMeleeSlot));
+					} else {
+						setMeleeSlot(null);
+						setMeleeWeaponDamageBonus(0);
+						localStorage.removeItem(COMBAT_MELEE_ITEM_STORAGE_KEY);
+					}
 
 					const persistedBow = parseStoredSelection(COMBAT_BOW_ITEM_STORAGE_KEY);
 					const persistedBowItemId = toNumberOrNull(persistedBow?.fkItemidItem);
@@ -416,10 +444,6 @@ const Combat = () => {
 						itemIdCounts.set(itemId, (itemIdCounts.get(itemId) ?? 0) + 1);
 					}
 
-					if (heldItemId != null) {
-						itemIdCounts.set(heldItemId, (itemIdCounts.get(heldItemId) ?? 0) + 1);
-					}
-
 					let gearAndHeldDefense = 0;
 					let gearAndHeldDamage = 0;
 					let gearAndHeldStrength = 0;
@@ -464,9 +488,31 @@ const Combat = () => {
 					}
 
 					setPlayerDefense(Math.max(0, playerBaseDefense + gearAndHeldDefense));
-					setPlayerBaseDamage(Math.max(1, playerBaseDamageFromStats + gearAndHeldDamage, heldItemId == null ? 1 : 0));
+					setPlayerBaseDamage(Math.max(1, playerBaseDamageFromStats + gearAndHeldDamage));
 					setPlayerStrength(Math.max(0, playerBaseStrength + gearAndHeldStrength));
 					setPlayerCritDamage(Math.max(0, playerBaseCritDamage + gearAndHeldCritDamage));
+
+					if (meleeItemId != null && damageStatId != null) {
+						try {
+							const meleeStatsResponse = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+								params: { itemId: meleeItemId },
+								validateStatus: (status) => status === 200 || status === 404,
+								headers: {
+									Accept: 'application/json',
+									...getAuthHeaders(),
+								},
+							});
+
+							const meleeStats = Array.isArray(meleeStatsResponse?.data) ? meleeStatsResponse.data : [];
+							const meleeDamageEntry = meleeStats.find((entry) => toNumberOrNull(entry.fkStatsidStats ?? entry.FkStatsidStats) === damageStatId);
+							const meleeDamageValue = toNumberOrNull(meleeDamageEntry?.value ?? meleeDamageEntry?.Value) ?? 0;
+							setMeleeWeaponDamageBonus(Math.max(0, meleeDamageValue));
+						} catch {
+							setMeleeWeaponDamageBonus(0);
+						}
+					} else {
+						setMeleeWeaponDamageBonus(0);
+					}
 
 					if (bowItemId != null && damageStatId != null) {
 						try {
@@ -590,6 +636,7 @@ const Combat = () => {
 	}, [matchedSkill, playerSkills]);
 
 	const playerSkillLevel = playerCombatSkill ? (toNumberOrNull(playerCombatSkill.level ?? playerCombatSkill.Level) ?? 0) : 0;
+	const hasMeleeWeaponLoaded = Boolean(meleeSlot?.fkItemidItem && (toNumberOrNull(meleeSlot?.quantity) ?? 0) > 0);
 	const bowItemCategory = bowSlot?.itemCategory ?? '';
 	const hasBowSelected = Boolean(bowSlot?.fkItemidItem && (toNumberOrNull(bowSlot?.quantity) ?? 0) > 0 && isBowCategory(bowItemCategory));
 	const hasArrowLoaded = Boolean(arrowSlot?.fkItemidItem && (toNumberOrNull(arrowSlot?.quantity) ?? 0) > 0 && isArrowCategory(arrowSlot?.itemCategory));
@@ -679,6 +726,7 @@ const Combat = () => {
 		setBattleLog((prev) => isAutoRestart ? prev : [`Engaged ${mob.name}.`, ...prev].slice(0, 10));
 		setLootResults([]);
 		setRewardMessage('');
+		setMeleeSlotMessage('');
 		setBowSlotMessage('');
 		setArrowSlotMessage('');
 		setIsRollingLoot(false);
@@ -767,7 +815,7 @@ const Combat = () => {
 		}
 
 		try {
-			await axios.post('http://localhost:5091/api/PlayerSkills/GrantSkillXp', {
+			const response = await axios.post('http://localhost:5091/api/PlayerSkills/GrantSkillXp', {
 				playerId,
 				skillId,
 				xpToAdd: mob.skillXpAmount,
@@ -777,6 +825,22 @@ const Combat = () => {
 					...getAuthHeaders(),
 				},
 			});
+
+			const updatedSkill = response?.data ?? null;
+			if (updatedSkill) {
+				setPlayerSkills((prev) => {
+					const updatedSkillId = toNumberOrNull(updatedSkill.fkSkillsidSkills ?? updatedSkill.FkSkillsidSkills) ?? skillId;
+					const index = prev.findIndex((entry) => toNumberOrNull(entry.fkSkillsidSkills ?? entry.FkSkillsidSkills) === updatedSkillId);
+
+					if (index === -1) {
+						return [...prev, updatedSkill];
+					}
+
+					const next = [...prev];
+					next[index] = updatedSkill;
+					return next;
+				});
+			}
 		} catch (grantError) {
 			console.error('Failed to grant combat skill xp:', grantError);
 		}
@@ -894,6 +958,7 @@ const Combat = () => {
 		}
 
 		if (styleKey === 'ranged') {
+			setMeleeSlotMessage('');
 			setBowSlotMessage('');
 			setArrowSlotMessage('');
 			const hasConsumedArrow = await consumeArrowForRangedShot();
@@ -908,7 +973,7 @@ const Combat = () => {
 		const style = ATTACK_STYLES[styleKey] ?? ATTACK_STYLES.melee;
 		const computedBaseDamage = styleKey === 'ranged'
 			? Math.max(1, playerBaseDamage + bowDamageBonus)
-			: playerBaseDamage;
+			: Math.max(1, playerBaseDamage + meleeWeaponDamageBonus);
 		const playerDamage = calculatePlayerHitDamage({
 			baseDamage: computedBaseDamage,
 			strength: playerStrength,
@@ -952,7 +1017,7 @@ const Combat = () => {
 		}
 
 		attackLockRef.current = false;
-	}, [bowDamageBonus, canUseRanged, consumeArrowForRangedShot, enemyDefense, finishBattle, flushPendingArrowConsumption, hasBowSelected, playerBaseDamage, playerCritDamage, playerDefense, playerStrength, pushLog]);
+	}, [bowDamageBonus, canUseRanged, consumeArrowForRangedShot, enemyDefense, finishBattle, flushPendingArrowConsumption, hasBowSelected, meleeWeaponDamageBonus, playerBaseDamage, playerCritDamage, playerDefense, playerStrength, pushLog]);
 
 	useEffect(() => {
 		if (!isBattling || battleMode === 'manual') {
@@ -968,7 +1033,7 @@ const Combat = () => {
 	}, [attackStyle, battleMode, isBattling, performAttack]);
 
 	const selectedMobLabel = selectedMob ? `${selectedMob.name} (${selectedMob.mobType})` : 'No mob selected';
-	const selectedMobLocation = selectedMob?.location?.trim() || 'Unknown';
+	const selectedMobLocation = formatLocationLabel(selectedMob?.location);
 	const selectedMobIconPath = selectedMobIcon || '';
 	const isMeleeStyleSelected = attackStyle === 'melee';
 	const isRangedStyleSelected = attackStyle === 'ranged';
@@ -993,16 +1058,87 @@ const Combat = () => {
 
 		return [...grouped.entries()]
 			.map(([location, groupedMobs]) => ({
-				location,
+				locationKey: location,
+				locationLabel: formatLocationLabel(location),
 				mobs: groupedMobs,
 			}))
-			.sort((a, b) => a.location.localeCompare(b.location));
+			.sort((a, b) => a.locationLabel.localeCompare(b.locationLabel));
 	}, [mobs]);
+
+	useEffect(() => {
+		if (!isMobSelectModalOpen) {
+			return;
+		}
+
+		setCollapsedLocationGroups((prev) => {
+			const nextState = { ...prev };
+			for (const group of mobsByLocation) {
+				if (!(group.locationKey in nextState)) {
+					nextState[group.locationKey] = true;
+				}
+			}
+
+			const selectedLocationKey = selectedMob?.location?.trim() || 'Unknown';
+			nextState[selectedLocationKey] = false;
+			return nextState;
+		});
+	}, [isMobSelectModalOpen, mobsByLocation, selectedMob]);
+
+	const toggleLocationGroup = useCallback((locationKey) => {
+		setCollapsedLocationGroups((prev) => ({
+			...prev,
+			[locationKey]: !prev[locationKey],
+		}));
+	}, []);
 
 	const handleSelectMob = (mobId) => {
 		setSelectedMobId(mobId);
+		const nextSelectedMob = mobs.find((mob) => mob.idMob === mobId);
+		const locationKey = nextSelectedMob?.location?.trim() || 'Unknown';
+		setCollapsedLocationGroups((prev) => ({
+			...prev,
+			[locationKey]: false,
+		}));
 		setIsMobSelectModalOpen(false);
 	};
+
+	const handleLoadMeleeWeapon = useCallback(() => {
+		const selectedInventoryItem = parseStoredSelection(SELLING_SELECTED_ITEM_STORAGE_KEY);
+		const quantity = toNumberOrNull(selectedInventoryItem?.quantity) ?? 0;
+
+		if (!selectedInventoryItem?.fkItemidItem || quantity <= 0) {
+			setMeleeSlotMessage('Select an inventory item first, then load it as a melee weapon.');
+			return;
+		}
+
+		if (!isMeleeWeaponCategory(selectedInventoryItem?.itemCategory)) {
+			setMeleeSlotMessage('Selected item is not a melee weapon.');
+			return;
+		}
+
+		const nextMeleeSlot = {
+			idPlayerInventorySlots: selectedInventoryItem.idPlayerInventorySlots,
+			slotIndex: selectedInventoryItem.slotIndex,
+			fkItemidItem: selectedInventoryItem.fkItemidItem,
+			quantity,
+			itemName: selectedInventoryItem.itemName ?? '',
+			itemIcon: selectedInventoryItem.itemIcon ?? '',
+			itemCategory: selectedInventoryItem.itemCategory ?? '',
+		};
+
+		setMeleeSlot(nextMeleeSlot);
+		localStorage.setItem(COMBAT_MELEE_ITEM_STORAGE_KEY, JSON.stringify(nextMeleeSlot));
+		setHeldItemRefreshTick((prev) => prev + 1);
+		setMeleeSlotMessage('');
+	}, []);
+
+	const handleClearMeleeWeapon = useCallback(() => {
+		setMeleeSlot(null);
+		setMeleeWeaponDamageBonus(0);
+		localStorage.removeItem(COMBAT_MELEE_ITEM_STORAGE_KEY);
+		setHeldItemRefreshTick((prev) => prev + 1);
+		setMeleeSlotMessage('');
+	}, []);
 
 	const handleLoadBow = useCallback(() => {
 		const selectedInventoryItem = parseStoredSelection(SELLING_SELECTED_ITEM_STORAGE_KEY);
@@ -1146,6 +1282,11 @@ const Combat = () => {
 					battleLog={battleLog}
 					rewardMessage={rewardMessage}
 					isRollingLoot={isRollingLoot}
+					meleeSlot={meleeSlot}
+					meleeSlotMessage={meleeSlotMessage}
+					hasMeleeWeaponLoaded={hasMeleeWeaponLoaded}
+					onLoadMeleeWeapon={handleLoadMeleeWeapon}
+					onClearMeleeWeapon={handleClearMeleeWeapon}
 					bowSlot={bowSlot}
 					arrowSlot={arrowSlot}
 					bowSlotMessage={bowSlotMessage}
@@ -1234,9 +1375,17 @@ const Combat = () => {
 
 						<div className="combat-mob-location-list">
 							{mobsByLocation.map((group) => (
-								<section key={group.location} className="combat-mob-location-group" aria-label={`${group.location} mobs`}>
-									<h4>{group.location}</h4>
-									<div className="combat-roster">
+								<section key={group.locationKey} className="combat-mob-location-group" aria-label={`${group.locationLabel} mobs`}>
+									<button
+										type="button"
+										className="combat-location-toggle"
+										onClick={() => toggleLocationGroup(group.locationKey)}
+										aria-expanded={!collapsedLocationGroups[group.locationKey]}
+									>
+										<h4>{group.locationLabel}</h4>
+										<span>{group.mobs.length} mob{group.mobs.length === 1 ? '' : 's'} · {collapsedLocationGroups[group.locationKey] ? 'Show' : 'Hide'}</span>
+									</button>
+									{collapsedLocationGroups[group.locationKey] ? null : <div className="combat-roster">
 										{group.mobs.map((mob) => {
 											const mobIcon = mob.icon ? resolveIconPath(mob.icon, BLOCK_TEXTURE_BY_FILE) : '';
 											const isSelected = mob.idMob === selectedMobId;
@@ -1253,13 +1402,13 @@ const Combat = () => {
 													</div>
 													<div className="combat-mob-card-body">
 														<strong>{mob.name}</strong>
-														<p>{mob.location || mob.mobType}</p>
+														<p>{formatLocationLabel(mob.location) || mob.mobType}</p>
 														<small>HP {mob.baseHealth} | DMG {mob.baseDamage}</small>
 													</div>
 												</button>
 											);
 										})}
-									</div>
+									</div>}
 								</section>
 							))}
 						</div>

@@ -15,6 +15,13 @@ namespace HypixelidleBackEnd.Controllers
     {
         private readonly HypixelIdleContext _context;
 
+        private static readonly int[] EarlyLevelXpCurve =
+        {
+            0, 50, 125, 200, 300,
+            500, 750, 1000, 1500, 2000,
+            3500,
+        };
+
         public PlayerSkillsController(HypixelIdleContext context)
         {
             _context = context;
@@ -91,6 +98,15 @@ namespace HypixelidleBackEnd.Controllers
                 return BadRequest("XpToAdd must be greater than zero.");
             }
 
+            var skillDefinition = await _context.Skills
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.IdSkills == request.SkillId);
+
+            if (skillDefinition == null)
+            {
+                return NotFound("Skill does not exist.");
+            }
+
             var playerSkill = await _context.Playerskills
                 .FirstOrDefaultAsync(ps => ps.FkPlayeridPlayer == request.PlayerId && ps.FkSkillsidSkills == request.SkillId);
 
@@ -108,10 +124,52 @@ namespace HypixelidleBackEnd.Controllers
                 _context.Playerskills.Add(playerSkill);
             }
 
-            playerSkill.Xp += request.XpToAdd;
+            var maxLevel = Math.Max(1, skillDefinition.MaxLevel);
+            playerSkill.Level = Math.Max(1, playerSkill.Level);
+            playerSkill.Xp = Math.Max(0, playerSkill.Xp) + request.XpToAdd;
+
+            while (playerSkill.Level < maxLevel)
+            {
+                var xpRequired = GetXpToNextLevel(playerSkill.Level);
+                if (xpRequired <= 0 || playerSkill.Xp < xpRequired)
+                {
+                    break;
+                }
+
+                playerSkill.Xp -= xpRequired;
+                playerSkill.Level += 1;
+            }
+
+            if (playerSkill.Level >= maxLevel)
+            {
+                playerSkill.Level = maxLevel;
+                playerSkill.Xp = 0;
+            }
 
             await _context.SaveChangesAsync();
             return Ok(playerSkill);
+        }
+
+        private static int GetXpToNextLevel(int level)
+        {
+            var normalizedLevel = Math.Max(0, level);
+
+            if (normalizedLevel <= 10)
+            {
+                return EarlyLevelXpCurve[normalizedLevel];
+            }
+
+            if (normalizedLevel <= 20)
+            {
+                return (int)(5000 * Math.Pow(1.35, normalizedLevel - 11));
+            }
+
+            if (normalizedLevel <= 44)
+            {
+                return 100000 * normalizedLevel - 1800000;
+            }
+
+            return (int)(2750000 + 300000 * (normalizedLevel - 45));
         }
 
         private async Task<int> GetNextPlayerSkillIdAsync()

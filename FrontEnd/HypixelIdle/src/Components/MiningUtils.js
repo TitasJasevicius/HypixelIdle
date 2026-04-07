@@ -123,9 +123,25 @@ export const resolveIconPath = (iconPath, textureByFile) => {
 		.replace(/^assets\/blocks\//, '');
 
 	const hasFileExtension = /\.(png|jpe?g|webp|gif|svg)$/i.test(pathWithoutPrefix);
-	const fileName = (hasFileExtension ? pathWithoutPrefix : `${pathWithoutPrefix}.png`).split('/').pop();
+	const fileName = pathWithoutPrefix.split('/').pop();
 
-	return fileName ? (textureByFile[fileName] ?? '') : '';
+	if (!fileName) {
+		return '';
+	}
+
+	if (hasFileExtension) {
+		return textureByFile[fileName] ?? '';
+	}
+
+	const extensionCandidates = ['png', 'gif', 'webp', 'jpg', 'jpeg', 'svg'];
+	for (const extension of extensionCandidates) {
+		const candidate = `${fileName}.${extension}`;
+		if (textureByFile[candidate]) {
+			return textureByFile[candidate];
+		}
+	}
+
+	return '';
 };
 
 export const normalizeNode = (node) => ({

@@ -1,5 +1,6 @@
 import { ATTACK_STYLES, formatDropChancePercent, formatDropQuantityRange } from './CombatUtils';
 import { BLOCK_TEXTURE_BY_FILE, resolveIconPath } from './MiningUtils';
+import CombatMeleeSetup from './CombatMeleeSetup.jsx';
 import CombatRangedSetup from './CombatRangedSetup';
 
 const CombatBattle = ({
@@ -28,6 +29,11 @@ const CombatBattle = ({
 	battleLog,
 	rewardMessage,
 	isRollingLoot,
+	meleeSlot,
+	meleeSlotMessage,
+	hasMeleeWeaponLoaded,
+	onLoadMeleeWeapon,
+	onClearMeleeWeapon,
 	bowSlot,
 	arrowSlot,
 	bowSlotMessage,
@@ -105,7 +111,16 @@ const CombatBattle = ({
 					/>
 				) : null}
 
-				{isRangedStyleSelected && !canUseRanged ? <p className="combat-ranged-hint">{bowSlot ? 'Load arrows into the arrow slot to use ranged mode.' : 'Load a bow into the bow slot, then load arrows.'}</p> : null}
+				{isMeleeStyleSelected ? (
+					<CombatMeleeSetup
+						meleeSlot={meleeSlot}
+						meleeSlotMessage={meleeSlotMessage}
+						hasMeleeWeaponLoaded={hasMeleeWeaponLoaded}
+						onLoadMeleeWeapon={onLoadMeleeWeapon}
+						onClearMeleeWeapon={onClearMeleeWeapon}
+						resolveIcon={resolveIcon}
+					/>
+				) : null}
 
 				<div className="combat-action-row">
 					<button type="button" className="combat-action-button primary" disabled={!selectedMob || isBattling || isRangedStartBlocked} onClick={() => onStartBattle(selectedMob)}>

@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
-using HypixelidleBackEnd.Services;
 
 namespace HypixelidleBackEnd.Controllers
 {
@@ -13,6 +12,10 @@ namespace HypixelidleBackEnd.Controllers
     public class StatsController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
+
+        
+
+       
 
         public StatsController(HypixelIdleContext context)
         {
@@ -47,11 +50,24 @@ namespace HypixelidleBackEnd.Controllers
         [HttpGet]
         [Route("GetEntityStats")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<Entitystat>>> GetEntityStats(int entityId)
+        public async Task<ActionResult<List<EntityStatResponse>>> GetEntityStats(int entityId)
         {
-            var entityStats = await _context.Entitystats.Where(s => s.IdEntityStats == entityId).ToListAsync();
+            var entityStats = await _context.Entitystats
+                .AsNoTracking()
+                .Where(s => s.IdEntityStats == entityId)
+                .Select(s => new EntityStatResponse
+                {
+                    IdEntityStats = s.IdEntityStats,
+                    Value = s.Value,
+                    PercentageValue = s.PercentageValue,
+                    FkStatsidStats = s.FkStatsidStats,
+                    FkPlayeridPlayer = s.FkPlayeridPlayer,
+                    FkItemidItem = s.FkItemidItem,
+                    FkMobidMob = s.FkMobidMob,
+                })
+                .ToListAsync();
 
-            if (entityStats == null)
+            if (entityStats.Count == 0)
             {
                 return NotFound();
             }
@@ -73,11 +89,24 @@ namespace HypixelidleBackEnd.Controllers
         [HttpGet]
         [Route("GetItemStats")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<Entitystat>>> GetItemStats(int itemId)
+        public async Task<ActionResult<List<EntityStatResponse>>> GetItemStats(int itemId)
         {
-            var itemStats = await _context.Entitystats.Where(s => s.FkItemidItem == itemId).ToListAsync();
+            var itemStats = await _context.Entitystats
+                .AsNoTracking()
+                .Where(s => s.FkItemidItem == itemId)
+                .Select(s => new EntityStatResponse
+                {
+                    IdEntityStats = s.IdEntityStats,
+                    Value = s.Value,
+                    PercentageValue = s.PercentageValue,
+                    FkStatsidStats = s.FkStatsidStats,
+                    FkPlayeridPlayer = s.FkPlayeridPlayer,
+                    FkItemidItem = s.FkItemidItem,
+                    FkMobidMob = s.FkMobidMob,
+                })
+                .ToListAsync();
 
-            if (itemStats == null)
+            if (itemStats.Count == 0)
             {
                 return NotFound();
             }
@@ -105,15 +134,24 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpGet]
         [Route("GetPlayerStats")]
-        public async Task<ActionResult<List<Entitystat>>> GetPlayerStats(int playerId)
+        public async Task<ActionResult<List<EntityStatResponse>>> GetPlayerStats(int playerId)
         {
             var playerStats = await _context.Entitystats
                 .AsNoTracking()
-                .Include(s => s.FkStatsidStatsNavigation)
                 .Where(s => s.FkPlayeridPlayer == playerId)
+                .Select(s => new EntityStatResponse
+                {
+                    IdEntityStats = s.IdEntityStats,
+                    Value = s.Value,
+                    PercentageValue = s.PercentageValue,
+                    FkStatsidStats = s.FkStatsidStats,
+                    FkPlayeridPlayer = s.FkPlayeridPlayer,
+                    FkItemidItem = s.FkItemidItem,
+                    FkMobidMob = s.FkMobidMob,
+                })
                 .ToListAsync();
 
-            if (playerStats == null)
+            if (playerStats.Count == 0)
             {
                 return NotFound();
             }
@@ -124,19 +162,46 @@ namespace HypixelidleBackEnd.Controllers
         [HttpGet]
         [Route("GetMobStats")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<Entitystat>>> GetMobStats(int mobId)
+        public async Task<ActionResult<List<EntityStatResponse>>> GetMobStats(int mobId)
         {
             var mobStats = await _context.Entitystats
                 .AsNoTracking()
                 .Where(s => s.FkMobidMob == mobId)
+                .Select(s => new EntityStatResponse
+                {
+                    IdEntityStats = s.IdEntityStats,
+                    Value = s.Value,
+                    PercentageValue = s.PercentageValue,
+                    FkStatsidStats = s.FkStatsidStats,
+                    FkPlayeridPlayer = s.FkPlayeridPlayer,
+                    FkItemidItem = s.FkItemidItem,
+                    FkMobidMob = s.FkMobidMob,
+                })
                 .ToListAsync();
 
-            if (mobStats == null)
+            if (mobStats.Count == 0)
             {
                 return NotFound();
             }
 
             return Ok(mobStats);
+        }
+
+        public sealed class EntityStatResponse
+        {
+            public int IdEntityStats { get; init; }
+
+            public int? Value { get; init; }
+
+            public float? PercentageValue { get; init; }
+
+            public int FkStatsidStats { get; init; }
+
+            public int? FkPlayeridPlayer { get; init; }
+
+            public int? FkItemidItem { get; init; }
+
+            public int? FkMobidMob { get; init; }
         }
     }
 

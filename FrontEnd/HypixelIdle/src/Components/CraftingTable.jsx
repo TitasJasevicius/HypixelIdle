@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { formatDisplayName } from './DisplayNameUtils';
+import DisplayItemInfo from './DisplayItemInfo';
 import '../Styles/CraftingTableStyles.css';
 import '../Styles/InventoryStyles.css';
 
@@ -55,9 +56,25 @@ const resolveIconPath = (iconPath) => {
 		.replace(/^assets\/blocks\//, '');
 
 	const hasFileExtension = /\.(png|jpe?g|webp|gif|svg)$/i.test(pathWithoutPrefix);
-	const fileName = (hasFileExtension ? pathWithoutPrefix : `${pathWithoutPrefix}.png`).split('/').pop();
+	const fileName = pathWithoutPrefix.split('/').pop();
 
-	return fileName ? (BLOCK_TEXTURE_BY_FILE[fileName] ?? '') : '';
+	if (!fileName) {
+		return '';
+	}
+
+	if (hasFileExtension) {
+		return BLOCK_TEXTURE_BY_FILE[fileName] ?? '';
+	}
+
+	const extensionCandidates = ['png', 'gif', 'webp', 'jpg', 'jpeg', 'svg'];
+	for (const extension of extensionCandidates) {
+		const candidate = `${fileName}.${extension}`;
+		if (BLOCK_TEXTURE_BY_FILE[candidate]) {
+			return BLOCK_TEXTURE_BY_FILE[candidate];
+		}
+	}
+
+	return '';
 };
 
 const withFallbackIcon = (iconPath) => {
@@ -96,10 +113,14 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	const [craftingGrid, setCraftingGrid] = useState(Array(9).fill(null));
 	const [craftingGridSourceSlots, setCraftingGridSourceSlots] = useState(Array(9).fill(null));
 	const [matchedRecipe, setMatchedRecipe] = useState(null);
+	const [selectedInfoItem, setSelectedInfoItem] = useState(null);
+	const [selectedInfoAnchorRect, setSelectedInfoAnchorRect] = useState(null);
 	const [selectedInventorySlotIndex, setSelectedInventorySlotIndex] = useState(null);
 	const [isRecipeBookOpen, setIsRecipeBookOpen] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [inventoryRefreshToken, setInventoryRefreshToken] = useState(0);
+	const [statsById, setStatsById] = useState({});
+	const [itemStatsByItemId, setItemStatsByItemId] = useState({});
 
 	const resolvedPlayerId = useMemo(() => {
 		if (playerId != null) {
@@ -157,6 +178,82 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	}, []);
 
 	useEffect(() => {
+		const fetchStatsCatalog = async () => {
+			try {
+				const response = await axios.get('http://localhost:5091/api/Stats/GetStats', {
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
+				});
+
+				const statList = Array.isArray(response.data) ? response.data : [];
+				const mapped = {};
+
+				for (const stat of statList) {
+					const statId = stat.idStats ?? stat.IdStats;
+					if (statId != null) {
+						mapped[statId] = {
+							id: statId,
+							name: formatDisplayName(stat.name ?? stat.Name ?? `Stat ${statId}`),
+						};
+					}
+				}
+
+				setStatsById(mapped);
+			} catch (error) {
+				console.error('Failed to load stats catalog:', error);
+			}
+		};
+
+		fetchStatsCatalog();
+	}, []);
+
+	useEffect(() => {
+		if (!selectedInfoItem?.fkItemidItem) {
+			return;
+		}
+
+		const itemId = selectedInfoItem.fkItemidItem;
+		if (itemStatsByItemId[itemId]) {
+			return;
+		}
+
+		const fetchItemStats = async () => {
+			try {
+				const response = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+					params: { itemId },
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
+				});
+
+				const mapped = Array.isArray(response.data)
+					? response.data.map((entry) => ({
+						statId: entry.fkStatsidStats ?? entry.FkStatsidStats,
+						value: entry.value ?? entry.Value ?? null,
+						percentageValue: entry.percentageValue ?? entry.PercentageValue ?? null,
+					}))
+					: [];
+
+				setItemStatsByItemId((prev) => ({
+					...prev,
+					[itemId]: mapped,
+				}));
+			} catch (error) {
+				console.error('Failed to load item stats:', error);
+				setItemStatsByItemId((prev) => ({
+					...prev,
+					[itemId]: [],
+				}));
+			}
+		};
+
+		fetchItemStats();
+	}, [selectedInfoItem, itemStatsByItemId]);
+
+	useEffect(() => {
 		const fetchInventory = async () => {
 			if (!resolvedPlayerId) {
 				setInventorySlots([]);
@@ -211,14 +308,42 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 					return null;
 				}
 
-				const itemId = typeof item === 'string' ? parseInt(item, 10) : item;
-				return Number.isNaN(itemId) ? null : itemId;
+				if (typeof item === 'string') {
+					const [rawItemId, rawQuantity] = item.split(',').map((part) => part.trim());
+					const itemId = parseInt(rawItemId, 10);
+					if (Number.isNaN(itemId)) {
+						return null;
+					}
+
+					const parsedQuantity = rawQuantity === undefined ? 1 : parseInt(rawQuantity, 10);
+					const quantity = Number.isNaN(parsedQuantity) ? 1 : Math.max(1, parsedQuantity);
+					return { itemId, quantity };
+				}
+
+				if (typeof item === 'number') {
+					return Number.isNaN(item) ? null : { itemId: item, quantity: 1 };
+				}
+
+				if (typeof item === 'object') {
+					const itemId = parseInt(item.itemId ?? item.id ?? item.ItemId ?? item.Id, 10);
+					if (Number.isNaN(itemId)) {
+						return null;
+					}
+
+					const parsedQuantity = parseInt(item.quantity ?? item.Quantity ?? 1, 10);
+					const quantity = Number.isNaN(parsedQuantity) ? 1 : Math.max(1, parsedQuantity);
+					return { itemId, quantity };
+				}
+
+				return null;
 			});
 		} catch (error) {
 			console.error('Failed to parse recipe grid:', error);
 			return Array(9).fill(null);
 		}
 	};
+
+	const recipeGridToItemIdGrid = (recipeGrid) => recipeGrid.map((slot) => (slot ? slot.itemId : null));
 
 	const normalizeGridForComparison = (grid) => {
 		return grid.map((itemId) => (itemId === null || itemId === undefined ? null : Number(itemId)));
@@ -239,7 +364,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	const foundRecipe = useMemo(() => {
 		for (const recipe of recipes) {
 			const recipeGrid = parseRecipeGrid(recipe.gridJson ?? recipe.GridJson);
-			if (doesGridMatchRecipe(craftingGrid, recipeGrid)) {
+			if (doesGridMatchRecipe(craftingGrid, recipeGridToItemIdGrid(recipeGrid))) {
 				return recipe;
 			}
 		}
@@ -348,6 +473,62 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 		setSelectedInventorySlotIndex((prev) => (prev === slot.slotIndex ? null : slot.slotIndex));
 	};
 
+	const handleResultItemInfoClick = (event, item, quantity = 1) => {
+		if (!item) {
+			return;
+		}
+
+		const itemId = item.idItem ?? item.IdItem;
+		if (!itemId) {
+			return;
+		}
+
+		const nextAnchorRect = event.currentTarget.getBoundingClientRect();
+		setSelectedInfoItem((prev) => {
+			if (prev?.fkItemidItem === itemId) {
+				setSelectedInfoAnchorRect(null);
+				return null;
+			}
+
+			setSelectedInfoAnchorRect(nextAnchorRect);
+			return {
+				fkItemidItem: itemId,
+				itemName: formatDisplayName(item.name ?? item.Name ?? `Item ${itemId}`),
+				itemIcon: item.icon ?? item.Icon ?? '',
+				quantity,
+			};
+		});
+	};
+
+	useEffect(() => {
+		if (!selectedInfoItem) {
+			return undefined;
+		}
+
+		const handleGlobalPointerDown = (event) => {
+			const target = event.target;
+			if (!(target instanceof Element)) {
+				return;
+			}
+
+			if (target.closest('.item-info-popover')) {
+				return;
+			}
+
+			if (target.closest('.matched-result') || target.closest('.recipe-result-preview-button')) {
+				return;
+			}
+
+			setSelectedInfoItem(null);
+			setSelectedInfoAnchorRect(null);
+		};
+
+		window.addEventListener('pointerdown', handleGlobalPointerDown);
+		return () => {
+			window.removeEventListener('pointerdown', handleGlobalPointerDown);
+		};
+	}, [selectedInfoItem]);
+
 	const handleCraft = async () => {
 		if (!matchedRecipe || !resolvedPlayerId) {
 			setCraftError(matchedRecipe ? '' : 'No matching recipe found.');
@@ -361,11 +542,29 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 			const recipeGrid = parseRecipeGrid(matchedRecipe.gridJson ?? matchedRecipe.GridJson);
 			const ingredientMap = {};
 
-			recipeGrid.forEach((itemId) => {
-				if (itemId !== null && itemId !== undefined) {
-					ingredientMap[itemId] = (ingredientMap[itemId] ?? 0) + 1;
+			recipeGrid.forEach((slot) => {
+				if (slot?.itemId != null) {
+					ingredientMap[slot.itemId] = (ingredientMap[slot.itemId] ?? 0) + slot.quantity;
 				}
 			});
+
+			const availableByItemId = {};
+			for (const slot of inventorySlots) {
+				const itemId = slot.fkItemidItem;
+				if (!itemId) {
+					continue;
+				}
+
+				availableByItemId[itemId] = (availableByItemId[itemId] ?? 0) + Math.max(0, Number(slot.quantity ?? 0));
+			}
+
+			for (const [itemId, requiredQuantity] of Object.entries(ingredientMap)) {
+				const availableQuantity = availableByItemId[itemId] ?? 0;
+				if (availableQuantity < requiredQuantity) {
+					setCraftError('Not enough ingredients in inventory.');
+					return;
+				}
+			}
 
 			for (const [itemId, quantity] of Object.entries(ingredientMap)) {
 				await axios.post(
@@ -418,9 +617,47 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	const resultItem = matchedRecipe ? recipeItems[matchedRecipe.fkItemidItem ?? matchedRecipe.FkItemidItem] : null;
 	const resultIcon = withFallbackIcon(resultItem?.icon ?? resultItem?.Icon);
 	const resultQuantity = matchedRecipe ? (matchedRecipe.resultQuantity ?? matchedRecipe.ResultQuantity ?? 1) : 0;
+	const selectedInfoStats = useMemo(() => {
+		if (!selectedInfoItem?.fkItemidItem) {
+			return [];
+		}
+
+		const rawStats = itemStatsByItemId[selectedInfoItem.fkItemidItem] ?? [];
+
+		return rawStats
+			.map((entry) => {
+				const statName = statsById[entry.statId]?.name ?? `Stat ${entry.statId}`;
+				const hasAbsolute = entry.value != null;
+				const hasPercent = entry.percentageValue != null;
+
+				if (!hasAbsolute && !hasPercent) {
+					return null;
+				}
+
+				const displayValue = hasPercent
+					? `${entry.percentageValue > 0 ? '+' : ''}${entry.percentageValue}%`
+					: `${entry.value > 0 ? '+' : ''}${entry.value}`;
+
+				return {
+					name: statName,
+					displayValue,
+					value: entry.value,
+					percentageValue: entry.percentageValue,
+				};
+			})
+			.filter(Boolean);
+	}, [selectedInfoItem, itemStatsByItemId, statsById]);
+	const selectedInfoItemIcon = withFallbackIcon(selectedInfoItem?.itemIcon);
 
 	return (
 		<section className="crafting-table">
+			<DisplayItemInfo
+				item={selectedInfoItem}
+				stats={selectedInfoStats}
+				anchorRect={selectedInfoAnchorRect}
+				iconPath={selectedInfoItem ? selectedInfoItemIcon : ''}
+				isVisible={Boolean(selectedInfoItem && selectedInfoAnchorRect)}
+			/>
 			<header className="crafting-header">
 				<h2>Crafting Table</h2>
 				{isLoadingRecipes ? <p>Loading recipes...</p> : null}
@@ -484,11 +721,9 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 					</div>
 
 					<div className="craft-controls">
-						{matchedRecipe ? (
-							<p className="crafting-tip">Click the result slot to craft.</p>
-						) : (
+						{!matchedRecipe ? (
 							<p className="crafting-tip">Select an inventory item, then click an empty crafting slot.</p>
-						)}
+						) : null}
 						{craftError ? <p className="error">{craftError}</p> : null}
 					</div>
 				</div>
@@ -572,17 +807,21 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 								return (
 									<div key={recipe.idRecipes ?? recipe.IdRecipes} className="recipe-card">
 										<div className="recipe-grid-preview">
-											{parseRecipeGrid(recipe.gridJson ?? recipe.GridJson).map((itemId, idx) => {
-												const ingredientItem = itemId ? recipeItems[itemId] : null;
+											{parseRecipeGrid(recipe.gridJson ?? recipe.GridJson).map((slot, idx) => {
+												const ingredientItemId = slot?.itemId;
+												const ingredientItem = ingredientItemId ? recipeItems[ingredientItemId] : null;
 												const ingredientIcon = ingredientItem ? withFallbackIcon(ingredientItem?.icon ?? ingredientItem?.Icon) : '';
 
 												return (
 													<div key={idx} className="preview-slot">
 														{ingredientIcon ? (
-															<img 
-																src={ingredientIcon} 
-																alt={formatDisplayName(ingredientItem?.name ?? ingredientItem?.Name ?? `Item ${itemId}`)}
-															/>
+															<>
+																<img
+																	src={ingredientIcon}
+																	alt={formatDisplayName(ingredientItem?.name ?? ingredientItem?.Name ?? `Item ${ingredientItemId}`)}
+																/>
+																{slot?.quantity > 1 ? <span className="preview-qty">{slot.quantity}</span> : null}
+															</>
 														) : null}
 													</div>
 												);
@@ -590,7 +829,14 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 										</div>
 										<div className="recipe-arrow">{'>'}</div>
 										<div className="recipe-result-preview">
-											<img src={recipeIcon} alt={recipeName || 'Result'} title={`${recipeName || 'Unknown'} x${recipeResultQty}`} />
+											<button
+												type="button"
+												className="recipe-result-preview-button"
+												onClick={(event) => handleResultItemInfoClick(event, recipeItem, recipeResultQty)}
+												title="Click to view item details"
+											>
+												<img src={recipeIcon} alt={recipeName || 'Result'} />
+											</button>
 											{recipeResultQty > 1 ? <span className="preview-qty">{recipeResultQty}</span> : null}
 										</div>
 									</div>
