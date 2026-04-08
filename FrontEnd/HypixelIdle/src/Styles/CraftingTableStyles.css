@@ -41,7 +41,7 @@
 }
 
 .crafting-shell {
-	background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+	background: rgba(8, 17, 25, 0.86);
 	border: 1px solid #3a4554;
 	border-radius: 12px;
 	padding: 16px;
@@ -218,6 +218,63 @@ button.matched-result:disabled {
 
 .craft-button:hover:not(:disabled) {
 	filter: brightness(1.06);
+}
+
+.crafting-quantity-modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(6, 11, 18, 0.68);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	z-index: 1300;
+}
+
+.crafting-quantity-modal {
+	width: min(340px, 100%);
+	display: grid;
+	gap: 0.55rem;
+	padding: 1rem;
+	border-radius: 0.7rem;
+	border: 1px solid #425367;
+	background: linear-gradient(180deg, #1e252f, #131922);
+}
+
+.crafting-quantity-modal h3 {
+	margin: 0;
+	font-size: 1.02rem;
+}
+
+.crafting-quantity-modal p,
+.crafting-quantity-modal label {
+	margin: 0;
+	color: var(--text-soft);
+	font-size: 0.9rem;
+}
+
+.crafting-quantity-modal input {
+	padding: 8px 10px;
+	border: 1px solid #44556b;
+	border-radius: 6px;
+	background: #0f141c;
+	color: var(--text-main);
+}
+
+.crafting-quantity-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 0.2rem;
+}
+
+.crafting-quantity-modal-actions button {
+	padding: 8px 12px;
+	border-radius: 6px;
+	border: 1px solid #4f5e72;
+	background: linear-gradient(180deg, #324152, #222c39);
+	color: #eaf4ff;
+	cursor: pointer;
 }
 
 .inventory-section,

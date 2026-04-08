@@ -80,6 +80,8 @@ public partial class HypixelIdleContext : DbContext
 
     public virtual DbSet<Playerstorageslot> Playerstorageslots { get; set; }
 
+    public virtual DbSet<Playernodeunlock> Playernodeunlocks { get; set; }
+
     public virtual DbSet<Purse> Purses { get; set; }
 
     public virtual DbSet<Rarity> Rarities { get; set; }
@@ -722,7 +724,6 @@ public partial class HypixelIdleContext : DbContext
                 .HasColumnType("int(11)")
                 .HasColumnName("fk_Outputitemid_Item");
             entity.Property(e => e.IsEnabled).HasColumnName("isEnabled");
-            entity.Property(e => e.IsUnlocked).HasColumnName("isUnlocked");
             entity.Property(e => e.NodeHealth)
                 .HasDefaultValueSql("'10'")
                 .HasColumnType("int(11)")
@@ -762,6 +763,34 @@ public partial class HypixelIdleContext : DbContext
                 .HasForeignKey(d => d.FkOutputitemidItem)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_node_output");
+        });
+
+        modelBuilder.Entity<Playernodeunlock>(entity =>
+        {
+            entity.HasKey(e => new { e.FkPlayeridPlayer, e.FkNodeidNode }).HasName("PRIMARY");
+
+            entity.ToTable("playernodeunlocks");
+
+            entity.HasIndex(e => e.FkNodeidNode, "fk_Nodeid_Node");
+
+            entity.HasIndex(e => e.FkPlayeridPlayer, "fk_Playerid_Player");
+
+            entity.Property(e => e.FkPlayeridPlayer)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Playerid_Player");
+            entity.Property(e => e.FkNodeidNode)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Nodeid_Node");
+
+            entity.HasOne(d => d.FkNodeidNodeNavigation).WithMany(p => p.Playernodeunlocks)
+                .HasForeignKey(d => d.FkNodeidNode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("playernodeunlocks_ibfk_2");
+
+            entity.HasOne(d => d.FkPlayeridPlayerNavigation).WithMany(p => p.Playernodeunlocks)
+                .HasForeignKey(d => d.FkPlayeridPlayer)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("playernodeunlocks_ibfk_1");
         });
 
         modelBuilder.Entity<Nodetype>(entity =>

@@ -18,7 +18,6 @@ import {
 	BLOCK_TEXTURE_BY_FILE,
 	DEFAULT_BLOCK_HEALTH,
 	getAuthHeaders,
-	loadUnlockedNodeMap,
 	normalizeItem,
 	normalizeNode,
 	resolveIconPath,
@@ -32,8 +31,6 @@ const FORAGING_NODE_TYPE_ID = 2;
 const FORAGING_SKILL_NAME = 'foraging';
 const FORAGING_SESSION_STORAGE_KEY = 'foragingSessionMinedByOutputItem';
 const FORAGING_FRUIT_COMBO_SESSION_KEY = 'foragingFruitSpecialCombo';
-
-const getForagingUnlockedNodesStorageKey = (playerId) => `foragingUnlockedNodesByPlayer_${playerId ?? 'guest'}`;
 
 const loadForagingSessionMap = () => {
 	try {
@@ -83,7 +80,6 @@ const Foraging = () => {
 	const [playerForagingSkillState, setPlayerForagingSkillState] = useState(null);
 	const [purseBalance, setPurseBalance] = useState(0);
 	const [isUnlockingNode, setIsUnlockingNode] = useState(false);
-	const [unlockedNodeMap, setUnlockedNodeMap] = useState({});
 	const [dropError, setDropError] = useState('');
 	const [isSavingDrop, setIsSavingDrop] = useState(false);
 	const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
@@ -114,15 +110,6 @@ const Foraging = () => {
 		const parsedPlayerId = Number(storedPlayerId);
 		return Number.isNaN(parsedPlayerId) ? null : parsedPlayerId;
 	}, []);
-
-	const unlockedNodesStorageKey = useMemo(
-		() => getForagingUnlockedNodesStorageKey(playerId),
-		[playerId]
-	);
-
-	useEffect(() => {
-		setUnlockedNodeMap(loadUnlockedNodeMap(unlockedNodesStorageKey));
-	}, [unlockedNodesStorageKey]);
 
 	useEffect(() => {
 		const fetchForagingData = async () => {
@@ -302,7 +289,7 @@ const Foraging = () => {
 		}
 
 		const levelMetNodes = nodesInSelectedZone.filter((node) => (node.requiredLevel ?? 1) <= playerForagingLevel);
-		const fullyUnlockedNodes = levelMetNodes.filter((node) => node.isUnlocked || unlockedNodeMap[node.idNode]);
+		const fullyUnlockedNodes = levelMetNodes.filter((node) => node.isUnlocked);
 		const preferredNode = fullyUnlockedNodes[0] ?? null;
 		const selectedNodeIsUnlocked = selectedNodeId
 			? fullyUnlockedNodes.some((node) => node.idNode === selectedNodeId)
@@ -311,7 +298,7 @@ const Foraging = () => {
 		if (!selectedNodeIsUnlocked) {
 			setSelectedNodeId(preferredNode?.idNode ?? null);
 		}
-	}, [nodesInSelectedZone, selectedNodeId, playerForagingLevel, unlockedNodeMap]);
+	}, [nodesInSelectedZone, selectedNodeId, playerForagingLevel]);
 
 	const selectedNode = useMemo(
 		() => foragingNodes.find((node) => node.idNode === selectedNodeId) ?? null,
@@ -436,7 +423,7 @@ const Foraging = () => {
 		const requiredLevel = nodeToUnlock.requiredLevel ?? 1;
 		const unlockPrice = Number(nodeToUnlock.unlockPrice ?? 0);
 		const isLevelMet = requiredLevel <= playerForagingLevel;
-		const isAlreadyUnlocked = nodeToUnlock.isUnlocked || Boolean(unlockedNodeMap[nodeToUnlock.idNode]);
+		const isAlreadyUnlocked = nodeToUnlock.isUnlocked;
 
 		if (!isLevelMet) {
 			setDropError(`You need Foraging level ${requiredLevel} first.`);
@@ -456,34 +443,26 @@ const Foraging = () => {
 			setIsUnlockingNode(true);
 			setDropError('');
 
-			if (unlockPrice > 0) {
-				await axios.put('http://localhost:5091/api/Purse/UpdatePurse', null, {
-					params: {
-						playerId,
-						amountBalance: -unlockPrice,
-						amountBits: 0,
-					},
-					headers: {
-						Accept: 'application/json',
-						...getAuthHeaders(),
-					},
-				});
-			}
+			await axios.post('http://localhost:5091/api/Node/UnlockNode', {
+				playerId,
+				nodeId: nodeToUnlock.idNode,
+			}, {
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
 
 			setPurseBalance((prev) => prev - unlockPrice);
-			setUnlockedNodeMap((prev) => {
-				const next = {
-					...prev,
-					[nodeToUnlock.idNode]: true,
-				};
-
-				localStorage.setItem(unlockedNodesStorageKey, JSON.stringify(next));
-				return next;
-			});
+			setNodes((prev) => prev.map((node) => (
+				node.idNode === nodeToUnlock.idNode
+					? { ...node, isUnlocked: true }
+					: node
+			)));
 			return true;
 		} catch (error) {
 			console.error('Failed to unlock node:', error);
-			setDropError('Failed to unlock node.');
+			setDropError(error?.response?.data?.message ?? error?.response?.data ?? 'Failed to unlock node.');
 			return false;
 		} finally {
 			setIsUnlockingNode(false);
@@ -585,11 +564,7 @@ const Foraging = () => {
 			return false;
 		}
 
-		if (node.isUnlocked) {
-			return true;
-		}
-
-		return Boolean(unlockedNodeMap[node.idNode]);
+		return Boolean(node.isUnlocked);
 	};
 
 	const isSelectedNodeUnlockedByPrice = selectedNode ? isNodeUnlockedByPrice(selectedNode) : false;
@@ -607,7 +582,7 @@ const Foraging = () => {
 	};
 
 	const handleSelectNode = async (node) => {
-		const isUnlocked = node.isUnlocked || Boolean(unlockedNodeMap[node.idNode]);
+		const isUnlocked = node.isUnlocked;
 
 		if (!isUnlocked) {
 			const didUnlock = await unlockNode(node);
@@ -705,7 +680,6 @@ const Foraging = () => {
 					nodes={nodesInSelectedZone}
 					itemsById={itemsById}
 					playerForagingLevel={playerForagingLevel}
-					unlockedNodeMap={unlockedNodeMap}
 					selectedNodeId={selectedNodeId}
 					isUnlockingNode={isUnlockingNode}
 					onSelectNode={handleSelectNode}

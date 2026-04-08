@@ -5,7 +5,6 @@ const NodeSelectModal = ({
 	nodes,
 	itemsById,
 	playerMiningLevel,
-	unlockedNodeMap,
 	selectedNodeId,
 	isUnlockingNode,
 	onSelectNode,
@@ -37,7 +36,7 @@ const NodeSelectModal = ({
 							const outputName = formatDisplayName(zoneOutputItem?.name ?? 'Unknown');
 							const label = `${sourceName} -> ${outputName}`;
 							const isLevelMet = (node.requiredLevel ?? 1) <= playerMiningLevel;
-							const isUnlocked = node.isUnlocked || Boolean(unlockedNodeMap[node.idNode]);
+							const isUnlocked = node.isUnlocked;
 
 							return (
 								<button

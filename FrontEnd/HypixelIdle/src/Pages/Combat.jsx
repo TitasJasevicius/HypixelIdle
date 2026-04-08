@@ -1041,6 +1041,10 @@ const Combat = () => {
 	const canAutoBattle = battleMode !== 'manual';
 	const currentPlayerCombatLevel = playerSkillLevel;
 	const selectedMobDrops = selectedMob?.drops ?? [];
+	const sortedSelectedMobDrops = useMemo(
+		() => [...selectedMobDrops].sort((a, b) => Number(b.dropChance ?? 0) - Number(a.dropChance ?? 0)),
+		[selectedMobDrops]
+	);
 	const canShowMobDrops = selectedMobDrops.length > 0;
 	const isRangedStartBlocked = attackStyle === 'ranged' && !canUseRanged;
 
@@ -1333,7 +1337,7 @@ const Combat = () => {
 
 						{canShowMobDrops ? (
 							<ul className="combat-modal-drop-list">
-								{selectedMobDrops.map((drop) => {
+								{sortedSelectedMobDrops.map((drop) => {
 									const dropIcon = drop.itemIcon ? resolveIconPath(drop.itemIcon, BLOCK_TEXTURE_BY_FILE) : '';
 									const chance = formatDropChancePercent(drop.dropChance);
 									const quantity = formatDropQuantityRange(drop.minQuantity, drop.maxQuantity);

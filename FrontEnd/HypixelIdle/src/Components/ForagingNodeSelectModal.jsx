@@ -5,7 +5,6 @@ const ForagingNodeSelectModal = ({
 	nodes,
 	itemsById,
 	playerForagingLevel,
-	unlockedNodeMap,
 	selectedNodeId,
 	isUnlockingNode,
 	onSelectNode,
@@ -37,7 +36,7 @@ const ForagingNodeSelectModal = ({
 							const outputName = formatDisplayName(zoneOutputItem?.name ?? 'Unknown');
 							const label = `${sourceName} -> ${outputName}`;
 							const isLevelMet = (node.requiredLevel ?? 1) <= playerForagingLevel;
-							const isUnlocked = node.isUnlocked || Boolean(unlockedNodeMap[node.idNode]);
+							const isUnlocked = node.isUnlocked;
 
 							return (
 								<button

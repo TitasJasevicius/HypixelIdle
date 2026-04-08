@@ -45,5 +45,7 @@ public partial class Player
 
     public virtual ICollection<Playerstoragepage> Playerstoragepages { get; set; } = new List<Playerstoragepage>();
 
+    public virtual ICollection<Playernodeunlock> Playernodeunlocks { get; set; } = new List<Playernodeunlock>();
+
     public virtual Purse? Purse { get; set; }
 }

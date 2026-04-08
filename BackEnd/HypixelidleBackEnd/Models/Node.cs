@@ -15,8 +15,6 @@ public partial class Node
 
     public int RequiredLevel { get; set; }
 
-    public bool IsUnlocked { get; set; }
-
     public int UnlockPrice { get; set; }
 
     public int XpReward { get; set; }
@@ -32,6 +30,8 @@ public partial class Node
     public string? Zone { get; set; }
 
     public bool IsEnabled { get; set; }
+
+    public virtual ICollection<Playernodeunlock> Playernodeunlocks { get; set; } = new List<Playernodeunlock>();
 
     public virtual Item FkNodeitemidItemNavigation { get; set; } = null!;
 

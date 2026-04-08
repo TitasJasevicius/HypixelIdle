@@ -19,8 +19,6 @@ export const MINING_NODE_TYPE_ID = 1;
 export const MINING_SKILL_NAME = 'mining';
 export const MINED_SESSION_STORAGE_KEY = 'miningSessionMinedByOutputItem';
 
-export const getUnlockedNodesStorageKey = (playerId) => `miningUnlockedNodesByPlayer_${playerId ?? 'guest'}`;
-
 export const loadMinedSessionMap = () => {
 	try {
 		const raw = localStorage.getItem(MINED_SESSION_STORAGE_KEY);
@@ -36,25 +34,6 @@ export const loadMinedSessionMap = () => {
 		return parsed;
 	} catch (error) {
 		console.warn('Failed to parse mined session map:', error);
-		return {};
-	}
-};
-
-export const loadUnlockedNodeMap = (storageKey) => {
-	try {
-		const raw = localStorage.getItem(storageKey);
-		if (!raw) {
-			return {};
-		}
-
-		const parsed = JSON.parse(raw);
-		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-			return {};
-		}
-
-		return parsed;
-	} catch (error) {
-		console.warn('Failed to parse unlocked nodes map:', error);
 		return {};
 	}
 };

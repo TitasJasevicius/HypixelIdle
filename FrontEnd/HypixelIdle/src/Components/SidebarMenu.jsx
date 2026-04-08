@@ -68,13 +68,10 @@ const SidebarMenu = ({ title, menuItems }) => {
         });
     };
 
-    const totalRootItems = useMemo(() => menuItems.length, [menuItems]);
-
     return (
         <aside className="home-sidebar" aria-label="Main navigation">
             <header className="sidebar-header">
                 <h1>{title}</h1>
-                <p>{totalRootItems} core sections</p>
             </header>
 
             <nav>

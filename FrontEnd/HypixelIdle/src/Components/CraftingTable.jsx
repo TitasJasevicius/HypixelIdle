@@ -111,7 +111,10 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	const [craftError, setCraftError] = useState('');
 
 	const [craftingGrid, setCraftingGrid] = useState(Array(9).fill(null));
+	const [craftingGridQuantities, setCraftingGridQuantities] = useState(Array(9).fill(0));
 	const [craftingGridSourceSlots, setCraftingGridSourceSlots] = useState(Array(9).fill(null));
+	const [pendingPlacement, setPendingPlacement] = useState(null);
+	const [placementQuantityInput, setPlacementQuantityInput] = useState('');
 	const [matchedRecipe, setMatchedRecipe] = useState(null);
 	const [selectedInfoItem, setSelectedInfoItem] = useState(null);
 	const [selectedInfoAnchorRect, setSelectedInfoAnchorRect] = useState(null);
@@ -343,33 +346,28 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 		}
 	};
 
-	const recipeGridToItemIdGrid = (recipeGrid) => recipeGrid.map((slot) => (slot ? slot.itemId : null));
+	const doesGridMatchRecipe = (currentGrid, currentQuantities, recipeGrid) => {
+		return recipeGrid.every((recipeSlot, idx) => {
+			const currentItemId = currentGrid[idx];
+			const currentQuantity = Math.max(0, Number(currentQuantities[idx] ?? 0));
 
-	const normalizeGridForComparison = (grid) => {
-		return grid.map((itemId) => (itemId === null || itemId === undefined ? null : Number(itemId)));
-	};
-
-	const doesGridMatchRecipe = (currentGrid, recipeGrid) => {
-		const normalized1 = normalizeGridForComparison(currentGrid);
-		const normalized2 = normalizeGridForComparison(recipeGrid);
-
-		return normalized1.every((item, idx) => {
-			if (item === null && normalized2[idx] === null) {
-				return true;
+			if (!recipeSlot) {
+				return currentItemId == null || currentQuantity <= 0;
 			}
-			return item === normalized2[idx];
+
+			return currentItemId === recipeSlot.itemId && currentQuantity >= recipeSlot.quantity;
 		});
 	};
 
 	const foundRecipe = useMemo(() => {
 		for (const recipe of recipes) {
 			const recipeGrid = parseRecipeGrid(recipe.gridJson ?? recipe.GridJson);
-			if (doesGridMatchRecipe(craftingGrid, recipeGridToItemIdGrid(recipeGrid))) {
+			if (doesGridMatchRecipe(craftingGrid, craftingGridQuantities, recipeGrid)) {
 				return recipe;
 			}
 		}
 		return null;
-	}, [craftingGrid, recipes]);
+	}, [craftingGrid, craftingGridQuantities, recipes]);
 
 	useEffect(() => {
 		setMatchedRecipe(foundRecipe);
@@ -391,39 +389,80 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	}, [recipes, recipeItems, searchQuery]);
 
 	const handleGridItemClick = (index) => {
-		setCraftingGrid((prevGrid) => {
-			const nextGrid = [...prevGrid];
+		if (craftingGrid[index] != null) {
+			const nextGrid = [...craftingGrid];
 			const nextSources = [...craftingGridSourceSlots];
+			const nextQuantities = [...craftingGridQuantities];
 
-			if (nextGrid[index] != null) {
-				nextGrid[index] = null;
-				nextSources[index] = null;
-				setCraftingGridSourceSlots(nextSources);
-				return nextGrid;
-			}
+			nextGrid[index] = null;
+			nextSources[index] = null;
+			nextQuantities[index] = 0;
 
-			if (selectedInventorySlotIndex == null) {
-				return nextGrid;
-			}
-
-			const selectedSlot = inventorySlotsByIndex[selectedInventorySlotIndex];
-			if (!selectedSlot || !selectedSlot.fkItemidItem || Number(selectedSlot.quantity ?? 0) <= 0) {
-				return nextGrid;
-			}
-
-			const availableFromSelectedSlot = Number(selectedSlot.quantity ?? 0);
-			const currentlyUsedFromSelectedSlot = nextSources.filter((slotIndex) => slotIndex === selectedInventorySlotIndex).length;
-
-			if (availableFromSelectedSlot <= currentlyUsedFromSelectedSlot) {
-				return nextGrid;
-			}
-
-			nextGrid[index] = selectedSlot.fkItemidItem;
-			nextSources[index] = selectedInventorySlotIndex;
+			setCraftingGrid(nextGrid);
 			setCraftingGridSourceSlots(nextSources);
+			setCraftingGridQuantities(nextQuantities);
+			return;
+		}
 
-			return nextGrid;
+		if (selectedInventorySlotIndex == null) {
+			return;
+		}
+
+		const selectedSlot = inventorySlotsByIndex[selectedInventorySlotIndex];
+		if (!selectedSlot || !selectedSlot.fkItemidItem || Number(selectedSlot.quantity ?? 0) <= 0) {
+			return;
+		}
+
+		const usedFromSelectedSlot = craftingGridSourceSlots.reduce((sum, slotIndex, slotIdx) => {
+			if (slotIndex !== selectedInventorySlotIndex) {
+				return sum;
+			}
+			return sum + Math.max(0, Number(craftingGridQuantities[slotIdx] ?? 0));
+		}, 0);
+
+		const availableFromSelectedSlot = Math.max(0, Number(selectedSlot.quantity ?? 0) - usedFromSelectedSlot);
+		if (availableFromSelectedSlot <= 0) {
+			return;
+		}
+
+		setPendingPlacement({
+			gridIndex: index,
+			sourceSlotIndex: selectedInventorySlotIndex,
+			itemId: selectedSlot.fkItemidItem,
+			itemName: selectedSlot.itemName,
+			maxQuantity: availableFromSelectedSlot,
 		});
+		setPlacementQuantityInput(String(availableFromSelectedSlot));
+	};
+
+	const handleConfirmPlacementQuantity = () => {
+		if (!pendingPlacement) {
+			return;
+		}
+
+		const parsedQuantity = Number(placementQuantityInput);
+		const safeQuantity = Number.isFinite(parsedQuantity)
+			? Math.max(1, Math.min(pendingPlacement.maxQuantity, Math.floor(parsedQuantity)))
+			: pendingPlacement.maxQuantity;
+
+		const nextGrid = [...craftingGrid];
+		const nextSources = [...craftingGridSourceSlots];
+		const nextQuantities = [...craftingGridQuantities];
+
+		nextGrid[pendingPlacement.gridIndex] = pendingPlacement.itemId;
+		nextSources[pendingPlacement.gridIndex] = pendingPlacement.sourceSlotIndex;
+		nextQuantities[pendingPlacement.gridIndex] = safeQuantity;
+
+		setCraftingGrid(nextGrid);
+		setCraftingGridSourceSlots(nextSources);
+		setCraftingGridQuantities(nextQuantities);
+		setPendingPlacement(null);
+		setPlacementQuantityInput('');
+	};
+
+	const handleCancelPlacementQuantity = () => {
+		setPendingPlacement(null);
+		setPlacementQuantityInput('');
 	};
 
 	const inventorySlotsByIndex = useMemo(() => {
@@ -453,16 +492,18 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 		[inventorySlotsByIndex]
 	);
 
-	const usedCountsBySlot = useMemo(() => {
+	const usedQuantitiesBySlot = useMemo(() => {
 		const counts = {};
-		for (const slotIndex of craftingGridSourceSlots) {
+		for (let index = 0; index < craftingGridSourceSlots.length; index += 1) {
+			const slotIndex = craftingGridSourceSlots[index];
+			const quantity = Math.max(0, Number(craftingGridQuantities[index] ?? 0));
 			if (slotIndex == null) {
 				continue;
 			}
-			counts[slotIndex] = (counts[slotIndex] ?? 0) + 1;
+			counts[slotIndex] = (counts[slotIndex] ?? 0) + quantity;
 		}
 		return counts;
-	}, [craftingGridSourceSlots]);
+	}, [craftingGridQuantities, craftingGridSourceSlots]);
 
 	const handleInventoryItemClick = (slot) => {
 		if (!slot?.fkItemidItem || !slot?.quantity) {
@@ -602,6 +643,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 			);
 
 			setCraftingGrid(Array(9).fill(null));
+			setCraftingGridQuantities(Array(9).fill(0));
 			setCraftingGridSourceSlots(Array(9).fill(null));
 			setMatchedRecipe(null);
 			setSelectedInventorySlotIndex(null);
@@ -678,6 +720,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 					<div className="crafting-grid-wrap">
 						<div className="grid-3x3">
 							{craftingGrid.map((itemId, index) => {
+								const slotQuantity = Math.max(0, Number(craftingGridQuantities[index] ?? 0));
 								const item = itemId ? recipeItems[itemId] : null;
 								const slotIcon = withFallbackIcon(item?.icon ?? item?.Icon);
 								const slotItemName = formatDisplayName(item?.name ?? item?.Name ?? `Item #${itemId}`);
@@ -693,6 +736,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 										{itemId ? (
 											<div className="slot-item">
 												<img src={slotIcon} alt={slotItemName} />
+												{slotQuantity > 1 ? <span className="result-qty">{slotQuantity}</span> : null}
 											</div>
 										) : null}
 									</button>
@@ -740,7 +784,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 							const hasItem = Boolean(slot.fkItemidItem) && Number(slot.quantity ?? 0) > 0;
 							const iconPath = hasItem ? withFallbackIcon(slot.itemIcon) : '';
 							const itemId = slot.fkItemidItem;
-							const available = hasItem ? Math.max(0, Number(slot.quantity ?? 0) - (usedCountsBySlot[slot.slotIndex] ?? 0)) : 0;
+							const available = hasItem ? Math.max(0, Number(slot.quantity ?? 0) - (usedQuantitiesBySlot[slot.slotIndex] ?? 0)) : 0;
 							const isSelected = hasItem && selectedInventorySlotIndex === slot.slotIndex;
 
 							return (
@@ -765,7 +809,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 							const hasItem = Boolean(slot.fkItemidItem) && Number(slot.quantity ?? 0) > 0;
 							const iconPath = hasItem ? withFallbackIcon(slot.itemIcon) : '';
 							const itemId = slot.fkItemidItem;
-							const available = hasItem ? Math.max(0, Number(slot.quantity ?? 0) - (usedCountsBySlot[slot.slotIndex] ?? 0)) : 0;
+							const available = hasItem ? Math.max(0, Number(slot.quantity ?? 0) - (usedQuantitiesBySlot[slot.slotIndex] ?? 0)) : 0;
 							const isSelected = hasItem && selectedInventorySlotIndex === slot.slotIndex;
 
 							return (
@@ -846,6 +890,30 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 					</section>
 				) : null}
 			</div>
+
+			{pendingPlacement ? (
+				<div className="crafting-quantity-modal-backdrop" role="presentation" onClick={handleCancelPlacementQuantity}>
+					<div className="crafting-quantity-modal" role="dialog" aria-modal="true" aria-label="Select quantity" onClick={(event) => event.stopPropagation()}>
+						<h3>Add to Crafting Slot</h3>
+						<p>{pendingPlacement.itemName || `Item ${pendingPlacement.itemId}`}</p>
+						<label htmlFor="crafting-quantity-input">
+							Quantity (max {pendingPlacement.maxQuantity})
+						</label>
+						<input
+							id="crafting-quantity-input"
+							type="number"
+							min="1"
+							max={pendingPlacement.maxQuantity}
+							value={placementQuantityInput}
+							onChange={(event) => setPlacementQuantityInput(event.target.value)}
+						/>
+						<div className="crafting-quantity-modal-actions">
+							<button type="button" onClick={handleCancelPlacementQuantity}>Cancel</button>
+							<button type="button" onClick={handleConfirmPlacementQuantity}>OK</button>
+						</div>
+					</div>
+				</div>
+			) : null}
 		</section>
 	);
 };

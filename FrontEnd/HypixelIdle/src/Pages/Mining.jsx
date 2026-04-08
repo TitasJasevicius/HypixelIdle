@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import MiningBlock from '../Components/MiningBlock';
+import MiningSpecialEvent from '../Components/MiningSpecialEvent';
 import Inventory from '../Components/Inventory';
 import PlayerEquipment from '../Components/PlayerEquipment';
 import PlayerCollection from '../Components/PlayerCollection';
@@ -17,9 +18,7 @@ import {
 	MINING_NODE_TYPE_ID,
 	MINING_SKILL_NAME,
 	getAuthHeaders,
-	getUnlockedNodesStorageKey,
 	loadMinedSessionMap,
-	loadUnlockedNodeMap,
 	normalizeItem,
 	normalizeNode,
 	resolveIconPath,
@@ -27,9 +26,13 @@ import {
 } from '../Components/MiningUtils';
 import { formatDisplayName } from '../Components/DisplayNameUtils';
 import '../Styles/GlobalStyles.css';
+import '../Styles/CombatStyles.css';
 import '../Styles/MiningStyles.css';
 
 const TITANIUM_SPAWN_CHANCE = 0.05;
+const ENCHANTED_TILE_SPAWN_CHANCE = 0.01;
+const ENCHANTED_TILE_DURATION_MS = 60000;
+const ENCHANTED_DAMAGE_MULTIPLIER = 1.5;
 
 const Mining = () => {
 	const [blockHealth, setBlockHealth] = useState(DEFAULT_BLOCK_HEALTH);
@@ -47,9 +50,10 @@ const Mining = () => {
 	const [isLoadingPurse, setIsLoadingPurse] = useState(true);
 	const [purseError, setPurseError] = useState('');
 	const [isUnlockingNode, setIsUnlockingNode] = useState(false);
-	const [unlockedNodeMap, setUnlockedNodeMap] = useState({});
 	const [dropError, setDropError] = useState('');
 	const [isSavingDrop, setIsSavingDrop] = useState(false);
+	const [enchantedTileExpiresAt, setEnchantedTileExpiresAt] = useState(null);
+	const [enchantedBoostExpiresAt, setEnchantedBoostExpiresAt] = useState(null);
 	const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
 	const [equipmentRefreshTick, setEquipmentRefreshTick] = useState(0);
 	const [collectionProgressTick, setCollectionProgressTick] = useState(0);
@@ -58,6 +62,10 @@ const Mining = () => {
 	const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
 	const [isNodeModalOpen, setIsNodeModalOpen] = useState(false);
 	const { miningHitsConfig } = useCalculateMiningSpeed();
+	const isEnchantedTileActive = enchantedTileExpiresAt != null;
+	const isEnchantedBoostActive = enchantedBoostExpiresAt != null;
+	const miningDamageMultiplier = isEnchantedBoostActive ? ENCHANTED_DAMAGE_MULTIPLIER : 1;
+
 	const handleInventoryChanged = useCallback(() => {
 		setInventoryRefreshTick((prev) => prev + 1);
 	}, []);
@@ -76,11 +84,31 @@ const Mining = () => {
 		return Number.isNaN(parsedPlayerId) ? null : parsedPlayerId;
 	}, []);
 
-	const unlockedNodesStorageKey = useMemo(() => getUnlockedNodesStorageKey(playerId), [playerId]);
+	useEffect(() => {
+		if (!enchantedTileExpiresAt) {
+			return undefined;
+		}
+
+		const remainingMs = Math.max(0, enchantedTileExpiresAt - Date.now());
+		const timeoutId = window.setTimeout(() => {
+			setEnchantedTileExpiresAt(null);
+		}, remainingMs);
+
+		return () => window.clearTimeout(timeoutId);
+	}, [enchantedTileExpiresAt]);
 
 	useEffect(() => {
-		setUnlockedNodeMap(loadUnlockedNodeMap(unlockedNodesStorageKey));
-	}, [unlockedNodesStorageKey]);
+		if (!enchantedBoostExpiresAt) {
+			return undefined;
+		}
+
+		const remainingMs = Math.max(0, enchantedBoostExpiresAt - Date.now());
+		const timeoutId = window.setTimeout(() => {
+			setEnchantedBoostExpiresAt(null);
+		}, remainingMs);
+
+		return () => window.clearTimeout(timeoutId);
+	}, [enchantedBoostExpiresAt]);
 
 	useEffect(() => {
 		const fetchMiningData = async () => {
@@ -238,6 +266,27 @@ const Mining = () => {
 		}
 	}, [playerId, miningSkillId, playerMiningSkillState, playerMiningLevel]);
 
+	const spawnEnchantedTile = useCallback(() => {
+		if (enchantedTileExpiresAt || enchantedBoostExpiresAt) {
+			return;
+		}
+
+		if (Math.random() >= ENCHANTED_TILE_SPAWN_CHANCE) {
+			return;
+		}
+
+		setEnchantedTileExpiresAt(Date.now() + ENCHANTED_TILE_DURATION_MS);
+	}, [enchantedBoostExpiresAt, enchantedTileExpiresAt]);
+
+	const activateEnchantedTile = useCallback(() => {
+		if (!isEnchantedTileActive) {
+			return;
+		}
+
+		setEnchantedTileExpiresAt(null);
+		setEnchantedBoostExpiresAt(Date.now() + ENCHANTED_TILE_DURATION_MS);
+	}, [isEnchantedTileActive]);
+
 	const miningTypeNodes = useMemo(
 		() => nodes.filter((node) => node.fkNodetypeidNodeType === MINING_NODE_TYPE_ID),
 		[nodes]
@@ -297,7 +346,7 @@ const Mining = () => {
 		}
 
 		const levelMetNodes = nodesInSelectedZone.filter((node) => (node.requiredLevel ?? 1) <= playerMiningLevel);
-		const fullyUnlockedNodes = levelMetNodes.filter((node) => node.isUnlocked || unlockedNodeMap[node.idNode]);
+		const fullyUnlockedNodes = levelMetNodes.filter((node) => node.isUnlocked);
 		const preferredNode = fullyUnlockedNodes[0] ?? null;
 		const selectedNodeIsUnlocked = selectedNodeId
 			? fullyUnlockedNodes.some((node) => node.idNode === selectedNodeId)
@@ -306,7 +355,7 @@ const Mining = () => {
 		if (!selectedNodeIsUnlocked) {
 			setSelectedNodeId(preferredNode?.idNode ?? null);
 		}
-	}, [nodesInSelectedZone, selectedNodeId, playerMiningLevel, unlockedNodeMap, activeTitaniumNodeId]);
+	}, [nodesInSelectedZone, selectedNodeId, playerMiningLevel, activeTitaniumNodeId]);
 
 	const selectedNode = useMemo(
 		() => miningTypeNodes.find((node) => node.idNode === selectedNodeId) ?? null,
@@ -416,7 +465,7 @@ const Mining = () => {
 		const requiredLevel = nodeToUnlock.requiredLevel ?? 1;
 		const unlockPrice = Number(nodeToUnlock.unlockPrice ?? 0);
 		const isLevelMet = requiredLevel <= playerMiningLevel;
-		const isAlreadyUnlocked = nodeToUnlock.isUnlocked || Boolean(unlockedNodeMap[nodeToUnlock.idNode]);
+		const isAlreadyUnlocked = nodeToUnlock.isUnlocked;
 
 		if (!isLevelMet) {
 			setDropError(`You need Mining level ${requiredLevel} first.`);
@@ -436,34 +485,26 @@ const Mining = () => {
 			setIsUnlockingNode(true);
 			setDropError('');
 
-			if (unlockPrice > 0) {
-				await axios.put('http://localhost:5091/api/Purse/UpdatePurse', null, {
-					params: {
-						playerId,
-						amountBalance: -unlockPrice,
-						amountBits: 0,
-					},
-					headers: {
-						Accept: 'application/json',
-						...getAuthHeaders(),
-					},
-				});
-			}
+			await axios.post('http://localhost:5091/api/Node/UnlockNode', {
+				playerId,
+				nodeId: nodeToUnlock.idNode,
+			}, {
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
 
 			setPurseBalance((prev) => prev - unlockPrice);
-			setUnlockedNodeMap((prev) => {
-				const next = {
-					...prev,
-					[nodeToUnlock.idNode]: true,
-				};
-
-				localStorage.setItem(unlockedNodesStorageKey, JSON.stringify(next));
-				return next;
-			});
+			setNodes((prev) => prev.map((node) => (
+				node.idNode === nodeToUnlock.idNode
+					? { ...node, isUnlocked: true }
+					: node
+			)));
 			return true;
 		} catch (error) {
 			console.error('Failed to unlock node:', error);
-			setDropError('Failed to unlock node.');
+			setDropError(error?.response?.data?.message ?? error?.response?.data ?? 'Failed to unlock node.');
 			return false;
 		} finally {
 			setIsUnlockingNode(false);
@@ -485,7 +526,8 @@ const Mining = () => {
 		}
 
 		const maxHealth = selectedNode.nodeHealth || DEFAULT_BLOCK_HEALTH;
-		const hitsThisClick = rollHitsForClick(miningHitsConfig);
+		const rawHitsThisClick = rollHitsForClick(miningHitsConfig);
+		const hitsThisClick = Math.max(1, Math.floor(rawHitsThisClick * miningDamageMultiplier));
 
 		if (hitsThisClick <= 0) {
 			return;
@@ -506,6 +548,7 @@ const Mining = () => {
 		await awardMiningSkillXp(minedNode?.xpReward);
 
 		handleMinedNode(minedNode);
+		spawnEnchantedTile();
 	};
 
 	const selectedNodeDisplay = selectedNode
@@ -518,11 +561,7 @@ const Mining = () => {
 			return false;
 		}
 
-		if (node.isUnlocked) {
-			return true;
-		}
-
-		return Boolean(unlockedNodeMap[node.idNode]);
+		return Boolean(node.isUnlocked);
 	};
 
 	const isSelectedNodeUnlockedByPrice = selectedNode ? isNodeUnlockedByPrice(selectedNode) : false;
@@ -547,7 +586,7 @@ const Mining = () => {
 			return;
 		}
 
-		const isUnlocked = node.isUnlocked || Boolean(unlockedNodeMap[node.idNode]);
+		const isUnlocked = node.isUnlocked;
 
 		if (!isUnlocked) {
 			const didUnlock = await unlockNode(node);
@@ -579,6 +618,14 @@ const Mining = () => {
 					selectedNode={selectedNode}
 					isSelectedNodeUnlocked={isSelectedNodeUnlocked}
 					selectedNodeRequiredLevel={selectedNodeRequiredLevel}
+				/>
+
+				<MiningSpecialEvent
+					isTileActive={isEnchantedTileActive}
+					isBoostActive={isEnchantedBoostActive}
+					onActivateTile={activateEnchantedTile}
+					damageMultiplier={ENCHANTED_DAMAGE_MULTIPLIER}
+					durationMs={ENCHANTED_TILE_DURATION_MS}
 				/>
 
 				<MiningBlock
@@ -633,7 +680,6 @@ const Mining = () => {
 					nodes={nodesInSelectedZone}
 					itemsById={itemsById}
 					playerMiningLevel={playerMiningLevel}
-					unlockedNodeMap={unlockedNodeMap}
 					selectedNodeId={selectedNodeId}
 					isUnlockingNode={isUnlockingNode}
 					onSelectNode={handleSelectNode}
