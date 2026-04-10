@@ -183,8 +183,6 @@
 
 .mining-special-event-copy--boost {
   grid-column: 1 / -1;
-  padding-top: 0.35rem;
-  border-top: 1px solid rgba(159, 191, 216, 0.2);
 }
 
 .mining-special-event-copy--boost p {

@@ -229,6 +229,88 @@ namespace HypixelidleBackEnd.Controllers
 
             return Ok();
         }
+
+        [HttpPost]
+        //update auth later
+        [AllowAnonymous]
+        [Route("SellInventoryItem")]
+        public async Task<ActionResult<SellInventoryItemResponse>> SellInventoryItem([FromBody] SellInventoryItemRequest request)
+        {
+            if (request.PlayerId <= 0 || request.InventorySlotId <= 0 || request.Quantity <= 0)
+            {
+                return BadRequest("PlayerId, InventorySlotId and Quantity must be greater than zero.");
+            }
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            var inventorySlot = await _context.Playerinventoryslots
+                .Include(slot => slot.FkItemidItemNavigation)
+                .FirstOrDefaultAsync(slot =>
+                    slot.IdPlayerInventorySlots == request.InventorySlotId &&
+                    slot.FkPlayeridPlayer == request.PlayerId);
+
+            if (inventorySlot == null)
+            {
+                return NotFound("Inventory slot not found.");
+            }
+
+            if (inventorySlot.FkItemidItem == null || inventorySlot.Quantity <= 0)
+            {
+                return Conflict("No sellable item in this inventory slot.");
+            }
+
+            if (request.ItemId.HasValue && request.ItemId.Value != inventorySlot.FkItemidItem.Value)
+            {
+                return Conflict("Selected item no longer matches this slot.");
+            }
+
+            if (inventorySlot.Quantity < request.Quantity)
+            {
+                return Conflict($"Inventory slot does not have enough items. Missing {request.Quantity - inventorySlot.Quantity} item(s).");
+            }
+
+            var itemSellValue = inventorySlot.FkItemidItemNavigation?.SellValue ?? 0;
+            if (itemSellValue <= 0)
+            {
+                return Conflict("This item cannot be sold.");
+            }
+
+            var soldQuantity = request.Quantity;
+            var coinsAwarded = soldQuantity * itemSellValue;
+
+            inventorySlot.Quantity -= soldQuantity;
+            if (inventorySlot.Quantity <= 0)
+            {
+                inventorySlot.Quantity = 0;
+                inventorySlot.FkItemidItem = null;
+            }
+
+            var purse = await _context.Purses.FirstOrDefaultAsync(p => p.FkPlayeridPlayer == request.PlayerId);
+            if (purse == null)
+            {
+                purse = new Purse
+                {
+                    IdPurse = await _context.Purses.Select(p => p.IdPurse).DefaultIfEmpty(0).MaxAsync() + 1,
+                    FkPlayeridPlayer = request.PlayerId,
+                    Balance = 0,
+                    Bits = 0,
+                };
+
+                _context.Purses.Add(purse);
+            }
+
+            purse.Balance += coinsAwarded;
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Ok(new SellInventoryItemResponse
+            {
+                CoinsAwarded = coinsAwarded,
+                SoldQuantity = soldQuantity,
+                RemainingQuantityInSlot = inventorySlot.Quantity,
+            });
+        }
         
         [HttpPut]
         //update auth later
@@ -280,6 +362,26 @@ namespace HypixelidleBackEnd.Controllers
             public int ItemId { get; set; }
 
             public int Quantity { get; set; } = 1;
+        }
+
+        public sealed class SellInventoryItemRequest
+        {
+            public int PlayerId { get; set; }
+
+            public int InventorySlotId { get; set; }
+
+            public int? ItemId { get; set; }
+
+            public int Quantity { get; set; } = 1;
+        }
+
+        public sealed class SellInventoryItemResponse
+        {
+            public int CoinsAwarded { get; set; }
+
+            public int SoldQuantity { get; set; }
+
+            public int RemainingQuantityInSlot { get; set; }
         }
 
         public sealed class InventorySlotResponse

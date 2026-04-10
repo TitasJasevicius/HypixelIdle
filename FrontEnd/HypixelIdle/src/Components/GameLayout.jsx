@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Outlet, useLocation } from 'react-router-dom';
 import SidebarMenu from './SidebarMenu';
 import Purse from './Purse';
+import ItemSearch from './ItemSearch';
 import '../Styles/GlobalStyles.css';
 import '../Styles/HomeStyles.css';
 
@@ -137,6 +138,7 @@ const GameLayout = () => {
                 {!isBankRoute ? <Purse className="layout-purse" /> : null}
                 <Outlet />
             </main>
+            <ItemSearch />
         </div>
     );
 };

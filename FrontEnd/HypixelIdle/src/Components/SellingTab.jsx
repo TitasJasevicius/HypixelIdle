@@ -178,12 +178,13 @@ const SellingTab = ({ playerId, refreshInventory }) => {
 			return;
 		}
 
+		const inventorySlotId = Number(sellSlotItem.idPlayerInventorySlots ?? 0);
 		const quantity = Math.max(0, Number(sellSlotItem.quantity ?? sellSlotItem.Quantity ?? 0));
 		const unitSellValue = Math.max(0, resolveUnitSellValue(sellSlotItem));
 		const itemId = sellSlotItem.fkItemidItem ?? sellSlotItem.FkItemidItem;
 		const totalSellValue = quantity * unitSellValue;
 
-		if (quantity <= 0 || itemId == null) {
+		if (quantity <= 0 || itemId == null || inventorySlotId <= 0) {
 			setError('Invalid item in sell slot.');
 			return;
 		}
@@ -197,8 +198,9 @@ const SellingTab = ({ playerId, refreshInventory }) => {
 			setIsSelling(true);
 			setError('');
 
-			await axios.post('http://localhost:5091/api/Inventory/RemoveItemFromInventory', {
+			const sellResponse = await axios.post('http://localhost:5091/api/Inventory/SellInventoryItem', {
 				playerId,
+				inventorySlotId,
 				itemId,
 				quantity,
 			}, {
@@ -208,18 +210,10 @@ const SellingTab = ({ playerId, refreshInventory }) => {
 				},
 			});
 
-			if (totalSellValue > 0) {
-				await axios.put('http://localhost:5091/api/Purse/UpdatePurse', null, {
-					params: {
-						playerId,
-						amountBalance: totalSellValue,
-						amountBits: 0,
-					},
-					headers: {
-						Accept: 'application/json',
-						...getAuthHeaders(),
-					},
-				});
+			const coinsAwarded = Number(sellResponse?.data?.coinsAwarded ?? sellResponse?.data?.CoinsAwarded ?? totalSellValue);
+			if (!Number.isFinite(coinsAwarded) || coinsAwarded <= 0) {
+				setError('Failed to sell item.');
+				return;
 			}
 
 			window.dispatchEvent(new CustomEvent('purse-updated'));

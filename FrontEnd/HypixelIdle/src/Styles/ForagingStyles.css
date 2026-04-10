@@ -232,6 +232,12 @@
   position: absolute;
   inset: 0;
   transform-origin: 50% 50%;
+  transform: rotate(var(--special-zone-rotate, 0deg));
+  background: conic-gradient(
+    from 90deg,
+    rgba(128, 224, 121, 0.95) 0deg var(--special-zone-width, 24deg),
+    transparent var(--special-zone-width, 24deg) 360deg
+  );
   border-radius: 50%;
   box-shadow: 0 0 8px rgba(128, 224, 121, 0.78);
   pointer-events: none;

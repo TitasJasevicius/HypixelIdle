@@ -47,6 +47,8 @@ const ForagingSkillCheckEvent = ({
 	const [zoneConfig, setZoneConfig] = useState(getRandomZoneConfig);
 	const rafIdRef = useRef(null);
 	const lastFrameMsRef = useRef(null);
+	const specialZoneRef = useRef(null);
+	const pointerRef = useRef(null);
 
 	const pointerSpeedDegPerSec = useMemo(() => (
 		Math.min(
@@ -88,6 +90,23 @@ const ForagingSkillCheckEvent = ({
 		};
 	}, [item, pointerSpeedDegPerSec]);
 
+	useEffect(() => {
+		if (!specialZoneRef.current) {
+			return;
+		}
+
+		specialZoneRef.current.style.setProperty('--special-zone-rotate', `${zoneConfig.specialCenterDeg - (zoneConfig.specialWidthDeg / 2)}deg`);
+		specialZoneRef.current.style.setProperty('--special-zone-width', `${zoneConfig.specialWidthDeg}deg`);
+	}, [zoneConfig]);
+
+	useEffect(() => {
+		if (!pointerRef.current) {
+			return;
+		}
+
+		pointerRef.current.style.setProperty('--pointer-angle', `${pointerAngleDeg}deg`);
+	}, [pointerAngleDeg]);
+
 	if (!item) {
 		return null;
 	}
@@ -118,15 +137,6 @@ const ForagingSkillCheckEvent = ({
 		});
 	};
 
-	const specialZoneStyle = {
-		transform: `rotate(${zoneConfig.specialCenterDeg - (zoneConfig.specialWidthDeg / 2)}deg)`,
-		background: `conic-gradient(from 90deg, rgba(128, 224, 121, 0.95) 0deg ${zoneConfig.specialWidthDeg}deg, transparent ${zoneConfig.specialWidthDeg}deg 360deg)`,
-	};
-
-	const pointerStyle = {
-		transform: `rotate(${pointerAngleDeg}deg)`,
-	};
-
 	return (
 		<div className="foraging-skill-check-modal-overlay" role="presentation">
 			<section
@@ -137,8 +147,8 @@ const ForagingSkillCheckEvent = ({
 			>
 				<h3 className="foraging-skill-check-title">{displayName} Skill Check</h3>
 				<div className="foraging-skill-check-ring">
-					<div className="foraging-skill-check-special-zone" style={specialZoneStyle} />
-					<div className="foraging-skill-check-pointer" style={pointerStyle} />
+					<div ref={specialZoneRef} className="foraging-skill-check-special-zone" />
+					<div ref={pointerRef} className="foraging-skill-check-pointer" />
 					<div className="foraging-skill-check-center">
 						<span className="foraging-skill-check-center-dot" />
 					</div>
