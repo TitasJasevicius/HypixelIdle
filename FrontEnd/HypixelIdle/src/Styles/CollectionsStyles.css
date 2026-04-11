@@ -1,0 +1,236 @@
+.collections-page {
+	display: grid;
+	gap: 1rem;
+	border: 1px solid rgba(118, 158, 185, 0.35);
+	background: rgba(8, 17, 25, 0.78);
+	border-radius: 1rem;
+	padding: clamp(1rem, 2.2vw, 1.5rem);
+}
+
+.collections-page-header h1 {
+	margin: 0;
+}
+
+.collections-page-header p {
+	margin: 0.4rem 0 0;
+	color: #a7c0d7;
+}
+
+.collections-panel {
+	display: grid;
+	gap: 1rem;
+}
+
+.collections-toolbar {
+	display: grid;
+	gap: 0.85rem;
+}
+
+.collections-search {
+	display: grid;
+	gap: 0.4rem;
+	color: #9fbdd6;
+	font-size: 0.92rem;
+}
+
+.collections-search input {
+	border: 1px solid rgba(118, 158, 185, 0.35);
+	background: rgba(9, 23, 33, 0.82);
+	color: #eaf5ff;
+	border-radius: 0.6rem;
+	padding: 0.55rem 0.7rem;
+}
+
+.collections-summary-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.collections-summary-card {
+	border: 1px solid rgba(118, 158, 185, 0.25);
+	background: rgba(9, 23, 33, 0.72);
+	border-radius: 0.75rem;
+	padding: 0.7rem 0.8rem;
+	display: grid;
+	gap: 0.25rem;
+}
+
+.collections-summary-card span {
+	color: #9fbdd6;
+	font-size: 0.82rem;
+}
+
+.collections-summary-card strong {
+	color: #eaf5ff;
+	font-size: 1.15rem;
+}
+
+.collections-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+	gap: 0.9rem;
+}
+
+.collection-card {
+	border: 1px solid rgba(118, 158, 185, 0.28);
+	background: linear-gradient(180deg, rgba(9, 23, 33, 0.9) 0%, rgba(6, 14, 20, 0.92) 100%);
+	border-radius: 0.95rem;
+	padding: 0.9rem;
+	display: grid;
+	gap: 0.85rem;
+	box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.collection-card-header {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.75rem;
+	align-items: center;
+}
+
+.collection-icon-wrap {
+	width: 3.3rem;
+	height: 3.3rem;
+	border-radius: 0.85rem;
+	border: 1px solid rgba(118, 158, 185, 0.28);
+	background: rgba(6, 14, 20, 0.92);
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+}
+
+.collection-icon {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+}
+
+.collection-header-copy {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.collection-title-row {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	justify-content: space-between;
+}
+
+.collection-title-row h2 {
+	margin: 0;
+	font-size: 1.1rem;
+}
+
+.collection-header-copy p {
+	margin: 0;
+	color: #9fbdd6;
+	font-size: 0.92rem;
+	line-height: 1.4;
+}
+
+.collection-tier-badge,
+.collection-max-badge {
+	border-radius: 999px;
+	padding: 0.2rem 0.65rem;
+	font-size: 0.78rem;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.collection-tier-badge {
+	border: 1px solid rgba(110, 194, 255, 0.35);
+	background: rgba(110, 194, 255, 0.1);
+	color: #a7d8ff;
+}
+
+.collection-max-badge {
+	border: 1px solid rgba(122, 214, 142, 0.35);
+	background: rgba(122, 214, 142, 0.12);
+	color: #aef0ba;
+}
+
+.collection-progress-block {
+	display: grid;
+	gap: 0.55rem;
+}
+
+.collection-progress-meta {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.75rem;
+	align-items: baseline;
+	color: #9fbdd6;
+	font-size: 0.9rem;
+}
+
+.collection-progress-meta strong {
+	color: #eaf5ff;
+	font-size: 0.95rem;
+}
+
+.collection-progress-bar {
+	height: 0.7rem;
+	border-radius: 999px;
+	background: rgba(118, 158, 185, 0.18);
+	overflow: hidden;
+}
+
+.collection-progress-fill {
+	height: 100%;
+	border-radius: inherit;
+	background: linear-gradient(90deg, #69c0ff 0%, #8cf19a 100%);
+	box-shadow: 0 0 16px rgba(105, 192, 255, 0.35);
+}
+
+.collection-progress-footnote {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.75rem;
+	font-size: 0.85rem;
+	color: #a7c0d7;
+}
+
+.collections-loading,
+.collections-error,
+.collections-empty-state {
+	border: 1px solid rgba(118, 158, 185, 0.25);
+	background: rgba(9, 23, 33, 0.72);
+	border-radius: 0.85rem;
+	padding: 1rem;
+	color: #eaf5ff;
+}
+
+@media (max-width: 900px) {
+	.collections-summary-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.collection-progress-meta,
+	.collection-progress-footnote {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
+@media (max-width: 640px) {
+	.collections-summary-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.collections-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.collection-card-header {
+		grid-template-columns: 1fr;
+	}
+
+	.collection-title-row {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}

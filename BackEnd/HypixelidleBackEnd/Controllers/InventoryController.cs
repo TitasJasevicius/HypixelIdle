@@ -290,7 +290,7 @@ namespace HypixelidleBackEnd.Controllers
             {
                 purse = new Purse
                 {
-                    IdPurse = await _context.Purses.Select(p => p.IdPurse).DefaultIfEmpty(0).MaxAsync() + 1,
+                    IdPurse = (await _context.Purses.MaxAsync(p => (int?)p.IdPurse) ?? 0) + 1,
                     FkPlayeridPlayer = request.PlayerId,
                     Balance = 0,
                     Bits = 0,
@@ -337,6 +337,25 @@ namespace HypixelidleBackEnd.Controllers
                 inventorySlot.FkItemidItem = null;
             }
 
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpDelete]
+        //update auth later
+        [AllowAnonymous]
+        [Route("DeleteInventorySlots")]
+        public async Task<ActionResult> DeleteInventorySlots(int playerId)
+        {
+            var inventorySlots = await _context.Playerinventoryslots.Where(slot => slot.FkPlayeridPlayer == playerId).ToListAsync();
+
+            if (inventorySlots.Count == 0)
+            {
+                return NotFound();
+            }
+
+            _context.Playerinventoryslots.RemoveRange(inventorySlots);
             await _context.SaveChangesAsync();
 
             return NoContent();

@@ -112,6 +112,14 @@ const GameLayout = () => {
                 ],
             },
             {
+                id: 'progress',
+                label: 'Progress',
+                children: [
+                    { id: 'progress-collections', label: 'Collections', to: '/collections' },
+                    { id: 'progress-leaderboard', label: 'Leaderboard', to: '/leaderboard' },
+                ],
+            },
+            {
                 id: 'skin-render',
                 label: 'Skin Render',
                 children: [

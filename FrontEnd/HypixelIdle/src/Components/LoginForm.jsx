@@ -81,7 +81,7 @@ const LoginForm = ({ onToggle, classPrefix = 'auth' }) => {
                 const accessTokenExpiresAtUtc = response.data?.accessTokenExpiresAtUtc ?? response.data?.AccessTokenExpiresAtUtc;
 
                 if (!accessToken || !accessTokenExpiresAtUtc) {
-                    alert("Login response is missing token data.");
+                    //alert("Login response is missing token data.");
                     return;
                 }
 
@@ -96,12 +96,12 @@ const LoginForm = ({ onToggle, classPrefix = 'auth' }) => {
 
                 window.dispatchEvent(new Event('auth-changed'));
 
-                alert("Login successful!");
+                //alert("Login successful!");
                 navigate('/');
             }
         } catch (error) {
             console.error("Error during login:", error);
-            alert("Login failed. Please check your credentials.");
+            //alert("Login failed. Please check your credentials.");
         }
     };
 

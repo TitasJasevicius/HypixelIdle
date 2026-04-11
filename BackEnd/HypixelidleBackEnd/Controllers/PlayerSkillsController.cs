@@ -150,6 +150,69 @@ namespace HypixelidleBackEnd.Controllers
             return Ok(playerSkill);
         }
 
+        [HttpPost]
+        [Route("InitializePlayerSkills")]
+        public async Task<ActionResult> InitializePlayerSkills(int playerId)
+        {
+            var defaultSkills = await _context.Skills.ToListAsync();
+
+            if (defaultSkills == null || defaultSkills.Count == 0)
+            {
+                return NotFound("No skills found to initialize.");
+            }
+
+            var existingSkillIds = await _context.Playerskills
+                .Where(playerSkill => playerSkill.FkPlayeridPlayer == playerId)
+                .Select(playerSkill => playerSkill.FkSkillsidSkills)
+                .ToListAsync();
+
+            var missingSkills = defaultSkills
+                .Where(skill => !existingSkillIds.Contains(skill.IdSkills))
+                .ToList();
+
+            if (missingSkills.Count == 0)
+            {
+                return NoContent();
+            }
+
+            var nextId = await GetNextPlayerSkillIdAsync();
+            var playerSkills = new List<Playerskill>(missingSkills.Count);
+
+            foreach (var skill in missingSkills)
+            {
+                playerSkills.Add(new Playerskill
+                {
+                    IdPlayerSkills = nextId++,
+                    FkPlayeridPlayer = playerId,
+                    FkSkillsidSkills = skill.IdSkills,
+                    Level = 1,
+                    Xp = 0
+                });
+            }
+
+            _context.Playerskills.AddRange(playerSkills);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpDelete]
+        [Route("DeletePlayerSkills")]
+        public async Task<ActionResult> DeletePlayerSkills(int playerId)
+        {
+            var playerSkills = await _context.Playerskills.Where(ps => ps.FkPlayeridPlayer == playerId).ToListAsync();
+
+            if (playerSkills == null || playerSkills.Count == 0)
+            {
+                return NotFound();
+            }
+
+            _context.Playerskills.RemoveRange(playerSkills);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         private static int GetXpToNextLevel(int level)
         {
             var normalizedLevel = Math.Max(0, level);

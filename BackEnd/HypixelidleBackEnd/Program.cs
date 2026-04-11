@@ -128,9 +128,15 @@ builder.Services.AddAuthorization();
 // Builder services
 builder.Services.AddScoped<HashingService>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<PlayerInitialization>();
 
 // Builder controllers
 builder.Services.AddScoped<InventoryController>();
+builder.Services.AddScoped<StatsController>();
+builder.Services.AddScoped<PlayerSkillsController>();
+builder.Services.AddScoped<PurseController>();
+builder.Services.AddScoped<BankController>();
+builder.Services.AddScoped<NodeController>();
 
 
 var app = builder.Build();

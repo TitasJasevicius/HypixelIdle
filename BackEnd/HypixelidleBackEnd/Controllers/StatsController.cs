@@ -84,7 +84,63 @@ namespace HypixelidleBackEnd.Controllers
 
             return CreatedAtAction(nameof(GetEntityStats), new { id = entityStat.IdEntityStats }, entityStat);
         }
+
+        [HttpPost]
+        [Route("InitializePlayerStats")]
+        public async Task<ActionResult> InitializePlayerStats(int playerId)
+        {
+           var defaultStats = await _context.Stats.ToListAsync();
+
+            if (defaultStats == null || defaultStats.Count == 0)
+            {
+                return NotFound("No stats found to initialize.");
+            }
+
+            var playerStats = defaultStats.Select(stat => new Entitystat
+            {
+                Value = null,
+                PercentageValue = null,
+                FkStatsidStats = stat.IdStats,
+                FkPlayeridPlayer = playerId,
+                FkItemidItem = null,
+                FkMobidMob = null
+            }).ToList();
+
+            _context.Entitystats.AddRange(playerStats);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpPost]
+        [Route("InitializePlayerHealth")]
+        public async Task<ActionResult> InitializePlayerHealth(int playerId, int defaultHealth)
+        {
+            var healthStat = await _context.Stats.FirstOrDefaultAsync(s => s.Name == "Health");
+
+            if (healthStat == null)
+            {
+                return NotFound("Health stat not found.");
+            }
+
+            var playerHealthStat = new Entitystat
+            {
+                Value = defaultHealth,
+                PercentageValue = null,
+                FkStatsidStats = healthStat.IdStats,
+                FkPlayeridPlayer = playerId,
+                FkItemidItem = null,
+                FkMobidMob = null
+            };
+
+            _context.Entitystats.Add(playerHealthStat);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
         
+
+
 
         [HttpGet]
         [Route("GetItemStats")]
@@ -186,6 +242,26 @@ namespace HypixelidleBackEnd.Controllers
 
             return Ok(mobStats);
         }
+
+        [HttpDelete]
+        [Route("DeletePlayerStats")]
+        public async Task<ActionResult> DeletePlayerStats(int playerId)
+        {
+            var playerStats = await _context.Entitystats.Where(s => s.FkPlayeridPlayer == playerId).ToListAsync();
+
+            if (playerStats.Count == 0)
+            {
+                return NotFound();
+            }
+
+            _context.Entitystats.RemoveRange(playerStats);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+            
+        }
+
+        
 
         public sealed class EntityStatResponse
         {

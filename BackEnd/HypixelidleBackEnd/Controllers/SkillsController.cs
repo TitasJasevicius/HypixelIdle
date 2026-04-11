@@ -44,5 +44,7 @@ namespace HypixelidleBackEnd.Controllers
             return CreatedAtAction(nameof(GetSkills), new { id = skill.IdSkills }, skill);
             
         }
+
+        
     }
 }

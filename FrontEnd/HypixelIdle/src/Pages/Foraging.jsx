@@ -272,10 +272,19 @@ const Foraging = () => {
 			return;
 		}
 
+		const firstSelectableNode = foragingNodes.find((node) => {
+			const isLevelMet = (node.requiredLevel ?? 1) <= playerForagingLevel;
+			return isLevelMet && node.isUnlocked;
+		});
+
+		const fallbackZone = firstSelectableNode
+			? (firstSelectableNode.zone || 'Unzoned').trim()
+			: zones[0];
+
 		if (!selectedZone || !zones.includes(selectedZone)) {
-			setSelectedZone(zones[0]);
+			setSelectedZone(fallbackZone);
 		}
-	}, [zones, selectedZone]);
+	}, [zones, selectedZone, foragingNodes, playerForagingLevel]);
 
 	const nodesInSelectedZone = useMemo(
 		() => foragingNodes.filter((node) => (node.zone || 'Unzoned').trim() === selectedZone),
@@ -283,8 +292,19 @@ const Foraging = () => {
 	);
 
 	useEffect(() => {
-		if (!nodesInSelectedZone.length) {
+		const firstSelectableNode = foragingNodes.find((node) => {
+			const isLevelMet = (node.requiredLevel ?? 1) <= playerForagingLevel;
+			return isLevelMet && node.isUnlocked;
+		});
+
+		if (!firstSelectableNode) {
 			setSelectedNodeId(null);
+			return;
+		}
+
+		if (!nodesInSelectedZone.length) {
+			setSelectedZone((currentZone) => currentZone || (firstSelectableNode.zone || 'Unzoned').trim());
+			setSelectedNodeId(firstSelectableNode.idNode);
 			return;
 		}
 
@@ -298,7 +318,7 @@ const Foraging = () => {
 		if (!selectedNodeIsUnlocked) {
 			setSelectedNodeId(preferredNode?.idNode ?? null);
 		}
-	}, [nodesInSelectedZone, selectedNodeId, playerForagingLevel]);
+	}, [nodesInSelectedZone, selectedNodeId, playerForagingLevel, foragingNodes]);
 
 	const selectedNode = useMemo(
 		() => foragingNodes.find((node) => node.idNode === selectedNodeId) ?? null,

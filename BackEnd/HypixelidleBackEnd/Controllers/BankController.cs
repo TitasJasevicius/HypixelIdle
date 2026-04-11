@@ -77,8 +77,47 @@ namespace HypixelidleBackEnd.Controllers
 
         private async Task<int> GetNextBankId()
         {
-            var maxId = await _context.Banks.Select(b => b.IdBank).DefaultIfEmpty(0).MaxAsync();
+            var maxId = await _context.Banks.MaxAsync(b => (int?)b.IdBank) ?? 0;
             return maxId + 1;
+        }
+
+        [HttpPost]
+        [Route("InitializePlayerBank")]
+        public async Task<ActionResult> InitializePlayerBank(int playerId)
+        {
+            var bank = await _context.Banks.FirstOrDefaultAsync(b => b.FkPlayeridPlayer == playerId);
+
+            if (bank == null)
+            {
+                bank = new Bank
+                {
+                    IdBank = await GetNextBankId(),
+                    FkPlayeridPlayer = playerId,
+                    Balance = 0,
+                };
+
+                _context.Banks.Add(bank);
+                await _context.SaveChangesAsync();
+            }
+
+            return NoContent();
+        }
+
+        [HttpDelete]
+        [Route("DeleteBank")]
+        public async Task<ActionResult> DeleteBank(int playerId)
+        {
+            var bank = await _context.Banks.FirstOrDefaultAsync(b => b.FkPlayeridPlayer == playerId);
+
+            if (bank == null)
+            {
+                return NotFound();
+            }
+
+            _context.Banks.Remove(bank);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
 
     }

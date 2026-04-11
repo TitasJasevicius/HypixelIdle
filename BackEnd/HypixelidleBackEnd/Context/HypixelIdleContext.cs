@@ -1636,6 +1636,14 @@ public partial class HypixelIdleContext : DbContext
                 .HasColumnName("name");
         });
 
+        foreach (var foreignKey in modelBuilder.Model
+                     .GetEntityTypes()
+                     .SelectMany(entityType => entityType.GetForeignKeys())
+                     .Where(foreignKey => foreignKey.PrincipalEntityType.ClrType == typeof(Player)))
+        {
+            foreignKey.DeleteBehavior = DeleteBehavior.Cascade;
+        }
+
         OnModelCreatingPartial(modelBuilder);
     }
 

@@ -80,8 +80,49 @@ namespace HypixelidleBackEnd.Controllers
 
         private async Task<int> GetNextPurseId()
         {
-            var maxId = await _context.Purses.Select(p => p.IdPurse).DefaultIfEmpty(0).MaxAsync();
+            var maxId = await _context.Purses.MaxAsync(p => (int?)p.IdPurse) ?? 0;
             return maxId + 1;
+        }
+
+        [HttpPost]
+        [Route("InitializePlayerPurse")]
+        public async Task<ActionResult> InitializePlayerPurse(int playerId)
+        {
+            var purse = await _context.Purses.FirstOrDefaultAsync(p => p.FkPlayeridPlayer == playerId);
+
+            if (purse == null)
+            {
+                purse = new Purse
+                {
+                    IdPurse = await GetNextPurseId(),
+                    FkPlayeridPlayer = playerId,
+                    Balance = 0,
+                    Bits = 0,
+                };
+
+                _context.Purses.Add(purse);
+                await _context.SaveChangesAsync();
+            }
+
+            return NoContent();
+        }
+
+        [HttpDelete]
+        [Route("DeletePurse")]
+        public async Task<ActionResult> DeletePurse(int playerId)
+        {
+            var purse = await _context.Purses.FirstOrDefaultAsync(p => p.FkPlayeridPlayer == playerId);
+            
+            if (purse == null)
+            {
+                return NotFound();
+            }
+
+            _context.Purses.Remove(purse);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+
         }
 
 

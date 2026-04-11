@@ -850,28 +850,35 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 
 								return (
 									<div key={recipe.idRecipes ?? recipe.IdRecipes} className="recipe-card">
+										<div className="recipe-card-header">
+											<h4>{recipeName}</h4>
+											<p>Produces x{recipeResultQty}</p>
+										</div>
+
 										<div className="recipe-grid-preview">
 											{parseRecipeGrid(recipe.gridJson ?? recipe.GridJson).map((slot, idx) => {
 												const ingredientItemId = slot?.itemId;
 												const ingredientItem = ingredientItemId ? recipeItems[ingredientItemId] : null;
 												const ingredientIcon = ingredientItem ? withFallbackIcon(ingredientItem?.icon ?? ingredientItem?.Icon) : '';
+												const ingredientName = formatDisplayName(ingredientItem?.name ?? ingredientItem?.Name ?? `Item ${ingredientItemId}`);
 
 												return (
-													<div key={idx} className="preview-slot">
+													<div key={idx} className={`preview-slot ${ingredientIcon ? '' : 'empty'}`.trim()}>
 														{ingredientIcon ? (
 															<>
 																<img
 																	src={ingredientIcon}
-																	alt={formatDisplayName(ingredientItem?.name ?? ingredientItem?.Name ?? `Item ${ingredientItemId}`)}
+																	alt={ingredientName}
 																/>
-																{slot?.quantity > 1 ? <span className="preview-qty">{slot.quantity}</span> : null}
+																<span className="recipe-slot-name">{ingredientName}</span>
+																<small className="recipe-slot-qty">x{slot?.quantity ?? 1}</small>
 															</>
 														) : null}
 													</div>
 												);
 											})}
 										</div>
-										<div className="recipe-arrow">{'>'}</div>
+
 										<div className="recipe-result-preview">
 											<button
 												type="button"
@@ -881,7 +888,6 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 											>
 												<img src={recipeIcon} alt={recipeName || 'Result'} />
 											</button>
-											{recipeResultQty > 1 ? <span className="preview-qty">{recipeResultQty}</span> : null}
 										</div>
 									</div>
 								);

@@ -40,12 +40,12 @@ const RegistrationForm = ({ onToggle, classPrefix = 'auth' }) => {
             });
 
             if (response.status === 201) {
-                alert("Registration successful!");
+                //alert("Registration successful!");
                 onToggle(); 
             }
         } catch (error) {
             console.error("Error during registration:", error);
-            alert("Registration failed. Please try again.");
+            //alert("Registration failed. Please try again.");
         }
     };
 

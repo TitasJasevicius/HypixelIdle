@@ -105,6 +105,7 @@ const Combat = () => {
 	const [collapsedLocationGroups, setCollapsedLocationGroups] = useState({});
 	const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
 	const [equipmentRefreshTick, setEquipmentRefreshTick] = useState(0);
+	const [itemCollectionByItemId, setItemCollectionByItemId] = useState({});
 	const selectedMobRef = useRef(null);
 	const playerHealthRef = useRef(0);
 	const enemyHealthRef = useRef(0);
@@ -203,6 +204,9 @@ const Combat = () => {
 					axios.get('http://localhost:5091/api/Stats/GetStats', {
 						headers: { Accept: 'application/json' },
 					}),
+					axios.get('http://localhost:5091/api/Item/GetItems', {
+						headers: { Accept: 'application/json' },
+					}),
 				];
 
 				if (playerId) {
@@ -246,11 +250,26 @@ const Combat = () => {
 					mobsResponse,
 					skillsResponse,
 					statsResponse,
+					itemsResponse,
 					playerSkillsResponse,
 					playerStatsResponse,
 					playerEquipmentResponse,
 					inventoryResponse,
 				] = await Promise.all(requests);
+
+				const normalizedItems = Array.isArray(itemsResponse?.data) ? itemsResponse.data : [];
+				const itemCollectionMap = {};
+				for (const item of normalizedItems) {
+					const itemId = toNumberOrNull(item?.idItem ?? item?.IdItem);
+					const collectionId = toNumberOrNull(item?.fkCollectionidCollection ?? item?.FkCollectionidCollection);
+					if (!itemId || !collectionId) {
+						continue;
+					}
+
+					itemCollectionMap[itemId] = collectionId;
+				}
+				setItemCollectionByItemId(itemCollectionMap);
+
 				const normalizedMobs = Array.isArray(mobsResponse.data) ? mobsResponse.data.map(normalizeMob) : [];
 				setMobs(normalizedMobs);
 				setSkills(Array.isArray(skillsResponse.data) ? skillsResponse.data : []);
@@ -784,6 +803,8 @@ const Combat = () => {
 			return;
 		}
 
+		const collectionAmounts = {};
+
 		for (const drop of lootDrops) {
 			if (!drop.itemId || drop.quantity <= 0) {
 				continue;
@@ -799,10 +820,32 @@ const Combat = () => {
 					...getAuthHeaders(),
 				},
 			});
+
+			const collectionId = itemCollectionByItemId[drop.itemId];
+			if (collectionId) {
+				collectionAmounts[collectionId] = (collectionAmounts[collectionId] ?? 0) + drop.quantity;
+			}
+		}
+
+		for (const [collectionIdKey, amountToAdd] of Object.entries(collectionAmounts)) {
+			if (!amountToAdd || amountToAdd <= 0) {
+				continue;
+			}
+
+			await axios.post('http://localhost:5091/api/PlayerCollections/AddOrUpdateCollectionProgress', {
+				playerId,
+				collectionId: Number(collectionIdKey),
+				amountToAdd,
+			}, {
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
 		}
 
 		setInventoryRefreshTick((prev) => prev + 1);
-	}, [playerId]);
+	}, [itemCollectionByItemId, playerId]);
 
 	const grantCombatSkillXp = useCallback(async (mob) => {
 		if (!playerId || !mob?.skillXpAmount || mob.skillXpAmount <= 0 || !matchedSkill) {

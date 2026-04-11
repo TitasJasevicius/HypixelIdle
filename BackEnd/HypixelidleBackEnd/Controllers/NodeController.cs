@@ -142,6 +142,39 @@ namespace HypixelidleBackEnd.Controllers
             return Ok(new UnlockNodeResponse(true, node.UnlockPrice));
         }
 
+        [HttpPost]
+        [Route("InitializeDefaultNodesForPlayer")]
+        public async Task<ActionResult> InitializeDefaultNodesForPlayer(int playerId)
+        {
+            var player = await _context.Players.FirstOrDefaultAsync(currentPlayer => currentPlayer.IdPlayer == playerId);
+            if (player == null)
+            {
+                return NotFound("Player not found.");
+            }
+
+            var defaultNodes = await _context.Nodes.Where(node => node.IdNode == 1 || node.IdNode == 12).ToListAsync(); 
+
+            foreach (var defaultNode in defaultNodes)
+            {
+                var alreadyUnlocked = await _context.Playernodeunlocks.AnyAsync(playerNodeUnlock =>
+                    playerNodeUnlock.FkPlayeridPlayer == playerId &&
+                    playerNodeUnlock.FkNodeidNode == defaultNode.IdNode);
+
+                if (!alreadyUnlocked)
+                {
+                    _context.Playernodeunlocks.Add(new Playernodeunlock
+                    {
+                        FkPlayeridPlayer = playerId,
+                        FkNodeidNode = defaultNode.IdNode,
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         public sealed record UnlockNodeRequest(int PlayerId, int NodeId);
 
         public sealed record UnlockNodeResponse(bool IsUnlocked, int UnlockPrice);

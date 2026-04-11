@@ -336,66 +336,88 @@ button.matched-result:disabled {
 
 .recipes-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 	gap: 10px;
 }
 
 .recipe-card {
-	background: linear-gradient(180deg, #1d232c, #151a22);
-	border: 1px solid #354255;
-	border-radius: 8px;
+	border: 1px solid rgba(141, 215, 255, 0.16);
+	border-radius: 10px;
+	background: rgba(11, 23, 35, 0.72);
 	padding: 10px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
+	display: grid;
 	gap: 8px;
+}
+
+.recipe-card-header {
+	display: grid;
+	gap: 2px;
+}
+
+.recipe-card-header h4 {
+	margin: 0;
+	color: #eaf5ff;
+	font-size: 1rem;
+}
+
+.recipe-card-header p {
+	margin: 0;
+	color: #9fc3df;
+	font-size: 0.82rem;
 }
 
 .recipe-grid-preview {
 	display: grid;
-	grid-template-columns: repeat(3, 32px);
-	gap: 3px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 6px;
 	padding: 6px;
-	background: #0f1217;
-	border: 1px solid #2f3a49;
+	background: rgba(7, 16, 24, 0.88);
+	border: 1px solid rgba(141, 215, 255, 0.14);
 	border-radius: 6px;
 }
 
 .preview-slot {
-	width: 32px;
-	height: 32px;
-	min-width: 32px;
-	min-height: 32px;
-	flex-shrink: 0;
-	background: linear-gradient(180deg, #2a3037, #1a1f27);
-	border: 1px solid #44556c;
-	border-radius: 4px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	position: relative;
-	overflow: hidden;
+	min-height: 78px;
+	border: 1px solid rgba(141, 215, 255, 0.14);
+	border-radius: 8px;
+	background: rgba(11, 23, 35, 0.76);
+	display: grid;
+	place-items: center;
+	text-align: center;
+	padding: 0.35rem;
+	gap: 0.15rem;
+}
+
+.preview-slot.empty {
+	opacity: 0.45;
 }
 
 .preview-slot img {
-	width: 100%;
-	height: 100%;
+	width: 28px;
+	height: 28px;
 	object-fit: contain;
 	image-rendering: pixelated;
 	pointer-events: none;
 }
 
-.preview-id {
+.recipe-slot-name {
+	color: #eaf5ff;
 	font-size: 0.72rem;
-	font-weight: 700;
-	color: #9fb2cc;
+	font-weight: 600;
+	line-height: 1.05;
+}
+
+.recipe-slot-qty {
+	color: #9fc3df;
+	font-size: 0.68rem;
+	font-weight: 600;
 }
 
 .recipe-result-preview {
-	width: 50px;
-	height: 50px;
-	background: linear-gradient(180deg, #1a1f27, #0f1217);
-	border: 1px solid #4b5b72;
+	width: 54px;
+	height: 54px;
+	background: rgba(7, 16, 24, 0.88);
+	border: 1px solid rgba(141, 215, 255, 0.2);
 	border-radius: 6px;
 	display: flex;
 	align-items: center;

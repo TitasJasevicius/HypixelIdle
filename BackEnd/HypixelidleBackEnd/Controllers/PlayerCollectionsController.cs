@@ -100,7 +100,25 @@ namespace HypixelidleBackEnd.Controllers
                     pc.FkPlayeridPlayer == request.PlayerId
                     && pc.FkCollectionidCollection == collection.IdCollection);
 
+            var player = await _context.Players
+                .FirstOrDefaultAsync(currentPlayer => currentPlayer.IdPlayer == request.PlayerId);
+
+            if (player == null)
+            {
+                return NotFound("Player not found.");
+            }
+
+            var collectionTiers = await _context.Collectiontiers
+                .AsNoTracking()
+                .Where(collectionTier => collectionTier.FkCollectionidCollection == collection.IdCollection)
+                .OrderBy(collectionTier => collectionTier.RequiredItemsValue)
+                .ToListAsync();
+
+            var resolvedTiers = CollectionTierMath.ResolveTiers(collectionTiers);
+
             var created = false;
+            var skyblockXpAwarded = 0;
+            var previousTotalCollected = 0;
 
             if (playerCollection == null)
             {
@@ -109,7 +127,7 @@ namespace HypixelidleBackEnd.Controllers
                 {
                     FkPlayeridPlayer = request.PlayerId,
                     FkCollectionidCollection = collection.IdCollection,
-                    TotalCollected = amountToAdd,
+                    TotalCollected = 0,
                     Unlocked = true,
                     CurrentTier = 0
                 };
@@ -118,8 +136,24 @@ namespace HypixelidleBackEnd.Controllers
             }
             else
             {
-                playerCollection.TotalCollected += amountToAdd;
+                previousTotalCollected = Math.Max(0, playerCollection.TotalCollected);
                 playerCollection.Unlocked = true;
+            }
+
+            playerCollection.TotalCollected = previousTotalCollected + amountToAdd;
+
+            var previousTier = resolvedTiers.Count(collectionTier => previousTotalCollected >= collectionTier.RequiredItemsValue);
+            var currentTier = resolvedTiers.Count(collectionTier => playerCollection.TotalCollected >= collectionTier.RequiredItemsValue);
+
+            if (currentTier > previousTier)
+            {
+                var tiersEarned = resolvedTiers
+                    .Skip(previousTier)
+                    .Take(currentTier - previousTier)
+                    .ToList();
+
+                skyblockXpAwarded = tiersEarned.Sum(collectionTier => collectionTier.Tier.RewardSkyblockXp);
+                player.CurrentXp += skyblockXpAwarded;
             }
 
             await _context.SaveChangesAsync();
@@ -130,10 +164,12 @@ namespace HypixelidleBackEnd.Controllers
                 CollectionId = playerCollection.FkCollectionidCollection,
                 CollectionName = collection.Name,
                 TotalCollected = playerCollection.TotalCollected,
-                CurrentTier = playerCollection.CurrentTier,
+                CurrentTier = currentTier,
                 Unlocked = playerCollection.Unlocked,
                 AmountAdded = amountToAdd,
-                Created = created
+                Created = created,
+                SkyblockXpAwarded = skyblockXpAwarded,
+                PlayerCurrentXp = player.CurrentXp,
             });
         }
 
@@ -165,6 +201,10 @@ namespace HypixelidleBackEnd.Controllers
             public int AmountAdded { get; set; }
 
             public bool Created { get; set; }
+
+            public int SkyblockXpAwarded { get; set; }
+
+            public int PlayerCurrentXp { get; set; }
         }
 
         

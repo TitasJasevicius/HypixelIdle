@@ -325,10 +325,19 @@ const Mining = () => {
 			return;
 		}
 
+		const firstSelectableNode = miningNodes.find((node) => {
+			const isLevelMet = (node.requiredLevel ?? 1) <= playerMiningLevel;
+			return isLevelMet && node.isUnlocked;
+		});
+
+		const fallbackZone = firstSelectableNode
+			? (firstSelectableNode.zone || 'Unzoned').trim()
+			: zones[0];
+
 		if (!selectedZone || !zones.includes(selectedZone)) {
-			setSelectedZone(zones[0]);
+			setSelectedZone(fallbackZone);
 		}
-	}, [zones, selectedZone]);
+	}, [zones, selectedZone, miningNodes, playerMiningLevel]);
 
 	const nodesInSelectedZone = useMemo(
 		() => miningNodes.filter((node) => (node.zone || 'Unzoned').trim() === selectedZone),
@@ -340,8 +349,19 @@ const Mining = () => {
 			return;
 		}
 
-		if (!nodesInSelectedZone.length) {
+		const firstSelectableNode = miningNodes.find((node) => {
+			const isLevelMet = (node.requiredLevel ?? 1) <= playerMiningLevel;
+			return isLevelMet && node.isUnlocked;
+		});
+
+		if (!firstSelectableNode) {
 			setSelectedNodeId(null);
+			return;
+		}
+
+		if (!nodesInSelectedZone.length) {
+			setSelectedZone((currentZone) => currentZone || (firstSelectableNode.zone || 'Unzoned').trim());
+			setSelectedNodeId(firstSelectableNode.idNode);
 			return;
 		}
 
@@ -355,7 +375,7 @@ const Mining = () => {
 		if (!selectedNodeIsUnlocked) {
 			setSelectedNodeId(preferredNode?.idNode ?? null);
 		}
-	}, [nodesInSelectedZone, selectedNodeId, playerMiningLevel, activeTitaniumNodeId]);
+	}, [nodesInSelectedZone, selectedNodeId, playerMiningLevel, activeTitaniumNodeId, miningNodes]);
 
 	const selectedNode = useMemo(
 		() => miningTypeNodes.find((node) => node.idNode === selectedNodeId) ?? null,

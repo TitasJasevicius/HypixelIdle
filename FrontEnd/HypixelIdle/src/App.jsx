@@ -9,6 +9,8 @@ import Foraging from './Pages/Foraging';
 import Combat from './Pages/Combat';
 import Bank from './Pages/Bank';
 import CraftingTable from './Components/CraftingTable';
+import Collections from './Pages/Collections';
+import Leaderboard from './Pages/Leaderboard';
 
 const getIsAuthenticated = () => {
   const token = localStorage.getItem('accessToken');
@@ -57,6 +59,8 @@ function App() {
           <Route path="mining" element={<Mining />} />
           <Route path="foraging" element={<Foraging />} />
           <Route path="combat" element={<Combat />} />
+          <Route path="collections" element={<Collections />} />
+          <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="bank" element={<Bank />} />
           <Route path="crafting" element={<CraftingTable />} />
           <Route path="skin-render" element={<PlayerSkinRender />} />
