@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import Inventory from '../Components/Inventory';
 import PlayerEquipment from '../Components/PlayerEquipment';
 import CombatBattle from '../Components/CombatBattle';
@@ -195,23 +196,23 @@ const Combat = () => {
 				setError('');
 
 				const requests = [
-					axios.get('http://localhost:5091/api/Mob/GetCombatMobs', {
+					axios.get(API_BASE + '/Mob/GetCombatMobs', {
 						headers: { Accept: 'application/json' },
 					}),
-					axios.get('http://localhost:5091/api/Skills/GetSkills', {
+					axios.get(API_BASE + '/Skills/GetSkills', {
 						headers: { Accept: 'application/json' },
 					}),
-					axios.get('http://localhost:5091/api/Stats/GetStats', {
+					axios.get(API_BASE + '/Stats/GetStats', {
 						headers: { Accept: 'application/json' },
 					}),
-					axios.get('http://localhost:5091/api/Item/GetItems', {
+					axios.get(API_BASE + '/Item/GetItems', {
 						headers: { Accept: 'application/json' },
 					}),
 				];
 
 				if (playerId) {
 					requests.push(
-						axios.get('http://localhost:5091/api/PlayerSkills/GetPlayerSkills', {
+						axios.get(API_BASE + '/PlayerSkills/GetPlayerSkills', {
 							params: { playerId },
 							validateStatus: (status) => status === 200 || status === 404,
 							headers: {
@@ -219,7 +220,7 @@ const Combat = () => {
 								...getAuthHeaders(),
 							},
 						}),
-						axios.get('http://localhost:5091/api/Stats/GetPlayerStats', {
+						axios.get(API_BASE + '/Stats/GetPlayerStats', {
 							params: { playerId },
 							validateStatus: (status) => status === 200 || status === 404,
 							headers: {
@@ -227,7 +228,7 @@ const Combat = () => {
 								...getAuthHeaders(),
 							},
 						}),
-						axios.get('http://localhost:5091/api/PlayerEquipment/GetPlayerEquipment', {
+						axios.get(API_BASE + '/PlayerEquipment/GetPlayerEquipment', {
 							params: { playerId },
 							validateStatus: (status) => status === 200 || status === 404,
 							headers: {
@@ -235,7 +236,7 @@ const Combat = () => {
 								...getAuthHeaders(),
 							},
 						}),
-						axios.get('http://localhost:5091/api/Inventory/GetInventory', {
+						axios.get(API_BASE + '/Inventory/GetInventory', {
 							params: { playerId },
 							validateStatus: (status) => status === 200 || status === 404,
 							headers: {
@@ -469,7 +470,7 @@ const Combat = () => {
 					let gearAndHeldCritDamage = 0;
 					if (defenseStatId != null && itemIdCounts.size > 0) {
 						const uniqueItemIds = [...itemIdCounts.keys()];
-						const itemStatsResponses = await Promise.all(uniqueItemIds.map((itemId) => axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+						const itemStatsResponses = await Promise.all(uniqueItemIds.map((itemId) => axios.get(API_BASE + '/Stats/GetItemStats', {
 							params: { itemId },
 							validateStatus: (status) => status === 200 || status === 404,
 							headers: {
@@ -513,7 +514,7 @@ const Combat = () => {
 
 					if (meleeItemId != null && damageStatId != null) {
 						try {
-							const meleeStatsResponse = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+							const meleeStatsResponse = await axios.get(API_BASE + '/Stats/GetItemStats', {
 								params: { itemId: meleeItemId },
 								validateStatus: (status) => status === 200 || status === 404,
 								headers: {
@@ -535,7 +536,7 @@ const Combat = () => {
 
 					if (bowItemId != null && damageStatId != null) {
 						try {
-							const bowStatsResponse = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+							const bowStatsResponse = await axios.get(API_BASE + '/Stats/GetItemStats', {
 								params: { itemId: bowItemId },
 								validateStatus: (status) => status === 200 || status === 404,
 								headers: {
@@ -590,13 +591,13 @@ const Combat = () => {
 
 			try {
 				const [statsResponse, mobStatsResponse] = await Promise.all([
-					axios.get('http://localhost:5091/api/Stats/GetStats', {
+					axios.get(API_BASE + '/Stats/GetStats', {
 						headers: {
 							Accept: 'application/json',
 							...getAuthHeaders(),
 						},
 					}),
-					axios.get('http://localhost:5091/api/Stats/GetMobStats', {
+					axios.get(API_BASE + '/Stats/GetMobStats', {
 						params: { mobId: selectedMob.idMob },
 						validateStatus: (status) => status === 200 || status === 404,
 						headers: {
@@ -677,7 +678,7 @@ const Combat = () => {
 		}
 
 		try {
-			await axios.post('http://localhost:5091/api/Inventory/RemoveItemFromInventory', {
+			await axios.post(API_BASE + '/Inventory/RemoveItemFromInventory', {
 				playerId,
 				itemId: pendingItemId,
 				quantity: pendingQuantity,
@@ -713,7 +714,7 @@ const Combat = () => {
 				itemId: pendingItemId,
 				quantity: pendingQuantity,
 			});
-			navigator.sendBeacon('http://localhost:5091/api/Inventory/RemoveItemFromInventory', new Blob([payload], { type: 'application/json' }));
+			navigator.sendBeacon(API_BASE + '/Inventory/RemoveItemFromInventory', new Blob([payload], { type: 'application/json' }));
 		};
 
 		window.addEventListener('beforeunload', flushOnUnload);
@@ -803,14 +804,14 @@ const Combat = () => {
 			return;
 		}
 
-		const collectionAmounts = {};
+		const itemAmounts = {};
 
 		for (const drop of lootDrops) {
 			if (!drop.itemId || drop.quantity <= 0) {
 				continue;
 			}
 
-			await axios.post('http://localhost:5091/api/Inventory/AddItemToInventory', {
+			await axios.post(API_BASE + '/Inventory/AddItemToInventory', {
 				playerId,
 				itemId: drop.itemId,
 				quantity: drop.quantity,
@@ -821,20 +822,17 @@ const Combat = () => {
 				},
 			});
 
-			const collectionId = itemCollectionByItemId[drop.itemId];
-			if (collectionId) {
-				collectionAmounts[collectionId] = (collectionAmounts[collectionId] ?? 0) + drop.quantity;
-			}
+			itemAmounts[drop.itemId] = (itemAmounts[drop.itemId] ?? 0) + drop.quantity;
 		}
 
-		for (const [collectionIdKey, amountToAdd] of Object.entries(collectionAmounts)) {
+		for (const [itemIdKey, amountToAdd] of Object.entries(itemAmounts)) {
 			if (!amountToAdd || amountToAdd <= 0) {
 				continue;
 			}
 
-			await axios.post('http://localhost:5091/api/PlayerCollections/AddOrUpdateCollectionProgress', {
+			await axios.post(API_BASE + '/PlayerCollections/AddOrUpdateCollectionProgress', {
 				playerId,
-				collectionId: Number(collectionIdKey),
+				itemId: Number(itemIdKey),
 				amountToAdd,
 			}, {
 				headers: {
@@ -845,7 +843,7 @@ const Combat = () => {
 		}
 
 		setInventoryRefreshTick((prev) => prev + 1);
-	}, [itemCollectionByItemId, playerId]);
+	}, [playerId]);
 
 	const grantCombatSkillXp = useCallback(async (mob) => {
 		if (!playerId || !mob?.skillXpAmount || mob.skillXpAmount <= 0 || !matchedSkill) {
@@ -858,7 +856,7 @@ const Combat = () => {
 		}
 
 		try {
-			const response = await axios.post('http://localhost:5091/api/PlayerSkills/GrantSkillXp', {
+			const response = await axios.post(API_BASE + '/PlayerSkills/GrantSkillXp', {
 				playerId,
 				skillId,
 				xpToAdd: mob.skillXpAmount,
@@ -895,7 +893,7 @@ const Combat = () => {
 		}
 
 		if (mob.coinsOnDeath > 0) {
-			await axios.put('http://localhost:5091/api/Purse/UpdatePurse', null, {
+			await axios.put(API_BASE + '/Purse/UpdatePurse', null, {
 				params: {
 					playerId,
 					amountBalance: mob.coinsOnDeath,
@@ -910,6 +908,23 @@ const Combat = () => {
 
 		await addLootToInventory(lootDrops);
 		await grantCombatSkillXp(mob);
+
+		try {
+			await axios.post(API_BASE + '/PlayerContracts/AddMobKillProgress', {
+				playerId,
+				mobId: mob.idMob,
+				amountToAdd: 1,
+			}, {
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
+
+			window.dispatchEvent(new Event('contracts-updated'));
+		} catch (contractError) {
+			console.error('Failed to update contract progress:', contractError);
+		}
 	}, [addLootToInventory, grantCombatSkillXp, playerId]);
 
 	const rollMobDrops = useCallback((mob) => {

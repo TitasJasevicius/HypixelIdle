@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as skinview3d from 'skinview3d';
+import { API_BASE } from '../config/api';
 import '../Styles/PlayerSkinRenderStyles.css';
 
 const DEFAULT_USERNAME = 'MisterShaco';
@@ -107,7 +108,7 @@ const PlayerSkinRender = forwardRef(function PlayerSkinRender({ initialUsername 
 
 			try {
 				const resolveResponse = await fetch(
-					`http://localhost:5091/api/Skin/Resolve?username=${encodeURIComponent(normalizedUsername)}`
+					`${API_BASE}/Skin/Resolve?username=${encodeURIComponent(normalizedUsername)}`
 				);
 
 				if (!resolveResponse.ok) {

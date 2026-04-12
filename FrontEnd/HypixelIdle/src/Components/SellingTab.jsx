@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import { formatDisplayName } from './DisplayNameUtils';
 import '../Styles/SellingTabStyles.css';
 
@@ -104,7 +105,7 @@ const SellingTab = ({ playerId, refreshInventory }) => {
 	useEffect(() => {
 		const fetchItemSellValues = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Item/GetItems', {
+				const response = await axios.get(API_BASE + '/Item/GetItems', {
 					headers: {
 						Accept: 'application/json',
 						...getAuthHeaders(),
@@ -198,7 +199,7 @@ const SellingTab = ({ playerId, refreshInventory }) => {
 			setIsSelling(true);
 			setError('');
 
-			const sellResponse = await axios.post('http://localhost:5091/api/Inventory/SellInventoryItem', {
+			const sellResponse = await axios.post(API_BASE + '/Inventory/SellInventoryItem', {
 				playerId,
 				inventorySlotId,
 				itemId,

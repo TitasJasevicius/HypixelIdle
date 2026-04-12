@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import { formatDisplayName } from './DisplayNameUtils';
 import DisplayItemInfo from './DisplayItemInfo';
 import '../Styles/CraftingTableStyles.css';
@@ -139,7 +140,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 				setRecipesError('');
 
 				
-				const allItemsResponse = await axios.get('http://localhost:5091/api/Item/GetItems', {
+				const allItemsResponse = await axios.get(API_BASE + '/Item/GetItems', {
 					headers: {
 						Accept: 'application/json',
 						...getAuthHeaders(),
@@ -158,7 +159,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 				}
 
 				// Fetch recipes
-				const response = await axios.get('http://localhost:5091/api/Recipes/GetRecipes', {
+				const response = await axios.get(API_BASE + '/Recipes/GetRecipes', {
 					headers: {
 						Accept: 'application/json',
 						...getAuthHeaders(),
@@ -183,7 +184,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 	useEffect(() => {
 		const fetchStatsCatalog = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetStats', {
 					headers: {
 						Accept: 'application/json',
 						...getAuthHeaders(),
@@ -224,7 +225,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 
 		const fetchItemStats = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetItemStats', {
 					params: { itemId },
 					headers: {
 						Accept: 'application/json',
@@ -269,7 +270,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 				setIsLoadingInventory(true);
 				setInventoryError('');
 
-				const response = await axios.get('http://localhost:5091/api/Inventory/GetInventory', {
+				const response = await axios.get(API_BASE + '/Inventory/GetInventory', {
 					params: {
 						playerId: resolvedPlayerId,
 					},
@@ -609,7 +610,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 
 			for (const [itemId, quantity] of Object.entries(ingredientMap)) {
 				await axios.post(
-					'http://localhost:5091/api/Inventory/RemoveItemFromInventory',
+					API_BASE + '/Inventory/RemoveItemFromInventory',
 					{
 						playerId: resolvedPlayerId,
 						itemId: parseInt(itemId, 10),
@@ -628,7 +629,7 @@ const CraftingTable = ({ playerId = null, inventoryRefreshTick = 0 } = {}) => {
 			const resultQuantity = matchedRecipe.resultQuantity ?? matchedRecipe.ResultQuantity ?? 1;
 
 			await axios.post(
-				'http://localhost:5091/api/Inventory/AddItemToInventory',
+				API_BASE + '/Inventory/AddItemToInventory',
 				{
 					playerId: resolvedPlayerId,
 					itemId: resultItemId,

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import '../Styles/PurseStyles.css';
 
 const getStoredPlayerId = () => {
@@ -58,7 +59,7 @@ const Purse = ({ className = '', playerId = null, refreshKey = 0 }) => {
 				setIsLoading(true);
 				setError('');
 
-				const response = await axios.get('http://localhost:5091/api/Purse/GetPurse', {
+				const response = await axios.get(API_BASE + '/Purse/GetPurse', {
 					params: {
 						playerId: resolvedPlayerId,
 					},

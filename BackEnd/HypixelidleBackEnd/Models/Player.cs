@@ -15,6 +15,8 @@ public partial class Player
 
     public int CurrentXp { get; set; }
 
+    public int ContractPoints { get; set; }
+
     public float EnchantingLvl { get; set; }
 
     public int GardenXp { get; set; }
@@ -32,6 +34,8 @@ public partial class Player
     public virtual ICollection<Playerbestiary> Playerbestiaries { get; set; } = new List<Playerbestiary>();
 
     public virtual ICollection<Playercollection> Playercollections { get; set; } = new List<Playercollection>();
+
+    public virtual ICollection<Playercontract> Playercontracts { get; set; } = new List<Playercontract>();
 
     public virtual ICollection<Playerequipment> Playerequipments { get; set; } = new List<Playerequipment>();
 

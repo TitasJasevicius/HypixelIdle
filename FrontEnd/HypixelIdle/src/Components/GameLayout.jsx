@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import { Outlet, useLocation } from 'react-router-dom';
 import SidebarMenu from './SidebarMenu';
 import Purse from './Purse';
@@ -19,7 +20,7 @@ const GameLayout = () => {
                 setIsLoadingSkills(true);
                 setSkillsError('');
 
-                const response = await axios.get('http://localhost:5091/api/Skills/GetSkills', {
+                const response = await axios.get(API_BASE + '/Skills/GetSkills', {
                     headers: {
                         Accept: 'application/json',
                     },
@@ -117,6 +118,7 @@ const GameLayout = () => {
                 children: [
                     { id: 'progress-collections', label: 'Collections', to: '/collections' },
                     { id: 'progress-leaderboard', label: 'Leaderboard', to: '/leaderboard' },
+                    { id: 'progress-contracts', label: 'Contracts', to: '/contracts' },
                 ],
             },
             {

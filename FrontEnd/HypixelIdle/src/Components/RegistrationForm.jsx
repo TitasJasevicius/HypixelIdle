@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 
 const RegistrationForm = ({ onToggle, classPrefix = 'auth' }) => {
     const [userForm, setUserForm] = useState({
@@ -33,7 +34,7 @@ const RegistrationForm = ({ onToggle, classPrefix = 'auth' }) => {
         e.preventDefault();
 
         try {
-            const response = await axios.post('http://localhost:5091/api/player/CreatePlayer', {
+            const response = await axios.post(API_BASE + '/player/CreatePlayer', {
                 username: userForm.username,
                 password: userForm.password,
                 email: userForm.email

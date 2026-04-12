@@ -43,7 +43,7 @@ export const getRandomAppleOverlayPosition = () => ({
 export const getForagingAppleSpawnChance = (item) => {
 	const value = getAppleValue(item);
 
-	// Formula example:
+	
 	// value=10 => 10% and value=1000 => 1%
 	const chance = Math.sqrt(0.1 / value);
 	return Math.max(0, Math.min(1, chance));

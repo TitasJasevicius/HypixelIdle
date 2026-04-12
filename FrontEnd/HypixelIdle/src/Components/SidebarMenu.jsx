@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const SidebarItem = ({ item, level, expandedNodes, onToggle }) => {
     const hasChildren = Array.isArray(item.children) && item.children.length > 0;
@@ -53,6 +53,15 @@ const SidebarItem = ({ item, level, expandedNodes, onToggle }) => {
 
 const SidebarMenu = ({ title, menuItems }) => {
     const [expandedNodes, setExpandedNodes] = useState(new Set());
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('accessTokenExpiresAtUtc');
+        localStorage.removeItem('playerId');
+        sessionStorage.clear();
+        navigate('/login', { replace: true });
+    };
 
     const toggleNode = (nodeId) => {
         setExpandedNodes((currentExpandedNodes) => {
@@ -74,7 +83,7 @@ const SidebarMenu = ({ title, menuItems }) => {
                 <h1>{title}</h1>
             </header>
 
-            <nav>
+            <nav className="sidebar-nav">
                 <ul className="sidebar-list root-list">
                     {menuItems.map((rootItem) => (
                         <SidebarItem
@@ -87,6 +96,12 @@ const SidebarMenu = ({ title, menuItems }) => {
                     ))}
                 </ul>
             </nav>
+
+            <div className="sidebar-footer">
+                <button type="button" className="sidebar-logout-button" onClick={handleLogout}>
+                    Logout
+                </button>
+            </div>
         </aside>
     );
 };

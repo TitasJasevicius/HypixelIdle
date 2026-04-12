@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import '../Styles/GlobalStyles.css';
 import '../Styles/LeaderboardStyles.css';
 
@@ -61,7 +62,7 @@ const Leaderboard = () => {
 				setIsLoading(true);
 				setError('');
 
-				const response = await axios.get('http://localhost:5091/api/Player/GetLeaderboard', {
+				const response = await axios.get(API_BASE + '/Player/GetLeaderboard', {
 					params: {
 						sortBy: mode,
 						take: 50,
@@ -95,7 +96,7 @@ const Leaderboard = () => {
 		const loadItems = async () => {
 			try {
 				setItemsError('');
-				const response = await axios.get('http://localhost:5091/api/Item/GetItems', {
+				const response = await axios.get(API_BASE + '/Item/GetItems', {
 					headers: {
 						Accept: 'application/json',
 					},

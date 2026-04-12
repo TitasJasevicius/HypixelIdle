@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import ForagingBlock from '../Components/ForagingBlock';
 import ForagingAppleSpecialEvent, {
 	getRandomAppleOverlayPosition,
@@ -120,21 +121,21 @@ const Foraging = () => {
 				setSkillError('');
 
 				const requests = [
-					axios.get('http://localhost:5091/api/Node/GetNodes', {
+					axios.get(API_BASE + '/Node/GetNodes', {
 						params: playerId ? { playerId } : undefined,
 						headers: { Accept: 'application/json' },
 					}),
-					axios.get('http://localhost:5091/api/Item/GetItems', {
+					axios.get(API_BASE + '/Item/GetItems', {
 						headers: { Accept: 'application/json' },
 					}),
-					axios.get('http://localhost:5091/api/Skills/GetSkills', {
+					axios.get(API_BASE + '/Skills/GetSkills', {
 						headers: { Accept: 'application/json' },
 					}),
 				];
 
 				if (playerId) {
 					requests.push(
-						axios.get('http://localhost:5091/api/PlayerSkills/GetPlayerSkills', {
+						axios.get(API_BASE + '/PlayerSkills/GetPlayerSkills', {
 							params: { playerId },
 							validateStatus: (status) => status === 200 || status === 404,
 							headers: {
@@ -145,7 +146,7 @@ const Foraging = () => {
 					);
 
 					requests.push(
-						axios.get('http://localhost:5091/api/Purse/GetPurse', {
+						axios.get(API_BASE + '/Purse/GetPurse', {
 							params: { playerId },
 							headers: {
 								Accept: 'application/json',
@@ -226,7 +227,7 @@ const Foraging = () => {
 		}
 
 		try {
-			const response = await axios.post('http://localhost:5091/api/PlayerSkills/GrantSkillXp', {
+			const response = await axios.post(API_BASE + '/PlayerSkills/GrantSkillXp', {
 				playerId,
 				skillId,
 				xpToAdd,
@@ -401,7 +402,7 @@ const Foraging = () => {
 		try {
 			setIsSavingDrop(true);
 
-			await axios.post('http://localhost:5091/api/Inventory/AddItemToInventory', {
+			await axios.post(API_BASE + '/Inventory/AddItemToInventory', {
 				playerId,
 				itemId,
 				quantity,
@@ -423,6 +424,26 @@ const Foraging = () => {
 					return next;
 				});
 			}
+
+			if (selectedNode?.idNode) {
+				try {
+					await axios.post(API_BASE + '/PlayerContracts/AddNodeMineProgress', {
+						playerId,
+						nodeId: selectedNode.idNode,
+						amountToAdd: 1,
+					}, {
+						headers: {
+							Accept: 'application/json',
+							...getAuthHeaders(),
+						},
+					});
+
+					window.dispatchEvent(new Event('contracts-updated'));
+				} catch (contractError) {
+					console.error('Failed to update node contract progress:', contractError);
+				}
+			}
+
 			setInventoryRefreshTick((prev) => prev + 1);
 			setCollectionProgressTick((prev) => prev + quantity);
 			return true;
@@ -463,7 +484,7 @@ const Foraging = () => {
 			setIsUnlockingNode(true);
 			setDropError('');
 
-			await axios.post('http://localhost:5091/api/Node/UnlockNode', {
+			await axios.post(API_BASE + '/Node/UnlockNode', {
 				playerId,
 				nodeId: nodeToUnlock.idNode,
 			}, {
@@ -543,7 +564,7 @@ const Foraging = () => {
 			setDropError('');
 
 			if (quantity > 0) {
-				await axios.post('http://localhost:5091/api/Inventory/AddItemToInventory', {
+				await axios.post(API_BASE + '/Inventory/AddItemToInventory', {
 					playerId,
 					itemId: activeAppleItem.idItem,
 					quantity,
@@ -674,6 +695,7 @@ const Foraging = () => {
 					<PlayerCollection
 						playerId={playerId}
 						itemName={itemName}
+						itemId={currentOutputItemId}
 						collectionId={collectionId}
 						progressTick={collectionProgressTick}
 					/>

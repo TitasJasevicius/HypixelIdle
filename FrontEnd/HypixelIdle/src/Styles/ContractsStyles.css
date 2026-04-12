@@ -1,0 +1,206 @@
+.contracts-page {
+    display: grid;
+    gap: 1rem;
+}
+
+.contracts-header h2 {
+    margin-bottom: 0.35rem;
+}
+
+.contracts-header p {
+    margin: 0;
+    opacity: 0.85;
+}
+
+.contracts-difficulty-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.difficulty-button {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.08);
+    color: inherit;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+}
+
+.difficulty-button.is-active {
+    border-color: rgba(255, 172, 109, 0.85);
+    background: rgba(255, 172, 109, 0.2);
+}
+
+.contracts-columns {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.contracts-list {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.contract-entry {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.contract-entry-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.contract-card {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.18);
+    padding: 0.9rem;
+    display: grid;
+    gap: 0.6rem;
+}
+
+.contract-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.contract-name {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.contract-meta {
+    margin: 0.2rem 0 0;
+    opacity: 0.8;
+    font-size: 0.92rem;
+}
+
+.contract-objective {
+    font-size: 0.94rem;
+}
+
+.contract-progress-track {
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.11);
+}
+
+.contract-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #76d2ff 0%, #76ffbe 100%);
+}
+
+.contract-rewards {
+    margin: 0;
+    padding-left: 1rem;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.contract-points-summary {
+    font-size: 0.92rem;
+    opacity: 0.9;
+}
+
+.contract-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.contract-button {
+    border: 1px solid rgba(118, 255, 190, 0.5);
+    background: rgba(118, 255, 190, 0.2);
+    color: inherit;
+    border-radius: 8px;
+    padding: 0.45rem 0.65rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.contract-button.contract-button-secondary {
+    border-color: rgba(118, 210, 255, 0.45);
+    background: rgba(118, 210, 255, 0.2);
+}
+
+.contract-cancel-button {
+    border: 1px solid rgba(255, 129, 129, 0.45);
+    background: rgba(55, 17, 20, 0.55);
+    color: #ffd9d9;
+    border-radius: 0.55rem;
+    padding: 0.45rem 0.65rem;
+    font-family: var(--main-text-font);
+    font-size: 0.98rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.contract-cancel-button:hover {
+    background: rgba(88, 23, 28, 0.58);
+    border-color: rgba(255, 156, 156, 0.6);
+}
+
+.contract-button:disabled,
+.contract-cancel-button:disabled,
+.difficulty-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.contracts-error {
+    color: #ff9696;
+}
+
+.contracts-status {
+    color: #9ef8b6;
+}
+
+.contracts-empty {
+    opacity: 0.8;
+}
+
+.contracts-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 9, 19, 0.72);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 1200;
+}
+
+.contracts-modal-card {
+    width: min(100%, 420px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 12px;
+    background: rgba(9, 19, 35, 0.96);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
+    padding: 1rem;
+    display: grid;
+    gap: 0.6rem;
+}
+
+.contracts-modal-card h4 {
+    margin: 0;
+}
+
+.contracts-modal-card p {
+    margin: 0;
+    opacity: 0.92;
+}
+
+.contracts-modal-actions {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+    margin-top: 0.35rem;
+}

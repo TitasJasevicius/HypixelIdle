@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import { formatDisplayName } from './DisplayNameUtils';
 
 const getAuthHeaders = () => {
@@ -14,7 +15,7 @@ const getAuthHeaders = () => {
 	};
 };
 
-const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }) => {
+const PlayerCollection = ({ playerId, itemName, itemId, collectionId, progressTick = 0 }) => {
 	const [progress, setProgress] = useState({
 		hasCollection: false,
 		collectionName: '',
@@ -24,6 +25,7 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 	});
 	const lastProcessedTickRef = useRef(progressTick);
 	const normalizedItemName = formatDisplayName(typeof itemName === 'string' ? itemName.trim() : '');
+	const normalizedItemId = Number.isInteger(itemId) ? itemId : null;
 	const normalizedCollectionId = Number.isInteger(collectionId) ? collectionId : null;
 
 	useEffect(() => {
@@ -50,7 +52,7 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 				let resolvedCollectionName = normalizedItemName;
 
 				if (!resolvedCollectionId && normalizedItemName) {
-					const collectionResponse = await axios.get('http://localhost:5091/api/Collection/GetCollection', {
+					const collectionResponse = await axios.get(API_BASE + '/Collection/GetCollection', {
 						params: {
 							name: normalizedItemName,
 						},
@@ -77,7 +79,7 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 				}
 
 				try {
-					const playerCollectionResponse = await axios.get('http://localhost:5091/api/PlayerCollections/GetPlayerCollection', {
+					const playerCollectionResponse = await axios.get(API_BASE + '/PlayerCollections/GetPlayerCollection', {
 						params: {
 							playerId,
 							collectionId: resolvedCollectionId,
@@ -152,8 +154,9 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 
 		const addProgress = async () => {
 			try {
-				const response = await axios.post('http://localhost:5091/api/PlayerCollections/AddOrUpdateCollectionProgress', {
+				const response = await axios.post(API_BASE + '/PlayerCollections/AddOrUpdateCollectionProgress', {
 					playerId,
+					itemId: normalizedItemId,
 					collectionName: normalizedItemName,
 					collectionId: normalizedCollectionId,
 					amountToAdd,
@@ -198,7 +201,7 @@ const PlayerCollection = ({ playerId, itemName, collectionId, progressTick = 0 }
 		};
 
 		addProgress();
-	}, [progressTick, playerId, normalizedItemName, normalizedCollectionId]);
+	}, [progressTick, playerId, normalizedItemName, normalizedItemId, normalizedCollectionId]);
 
 	return (
 		<article>

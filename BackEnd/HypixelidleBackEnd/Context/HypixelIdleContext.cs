@@ -28,6 +28,14 @@ public partial class HypixelIdleContext : DbContext
 
     public virtual DbSet<Collectiontier> Collectiontiers { get; set; }
 
+    public virtual DbSet<Contract> Contracts { get; set; }
+
+    public virtual DbSet<ContractContractreward> ContractContractrewards { get; set; }
+
+    public virtual DbSet<Contractdifficulty> Contractdifficulties { get; set; }
+
+    public virtual DbSet<Contractreward> Contractrewards { get; set; }
+
     public virtual DbSet<Entitystat> Entitystats { get; set; }
 
     public virtual DbSet<Equipmenttype> Equipmenttypes { get; set; }
@@ -63,6 +71,8 @@ public partial class HypixelIdleContext : DbContext
     public virtual DbSet<Playerbestiary> Playerbestiaries { get; set; }
 
     public virtual DbSet<Playercollection> Playercollections { get; set; }
+
+    public virtual DbSet<Playercontract> Playercontracts { get; set; }
 
     public virtual DbSet<Playerequipment> Playerequipments { get; set; }
 
@@ -295,6 +305,136 @@ public partial class HypixelIdleContext : DbContext
                 .HasForeignKey<Collectiontier>(d => d.FkItemidItem)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("collectiontiers_ibfk_1");
+        });
+
+        modelBuilder.Entity<Contract>(entity =>
+        {
+            entity.HasKey(e => e.IdContract).HasName("PRIMARY");
+
+            entity.ToTable("contract");
+
+            entity.HasIndex(e => e.FkContractdifficultyidContractdifficulty, "fk_ContractDifficultyid_ContractDifficulty");
+
+            entity.HasIndex(e => e.FkMobidMob, "fk_Mobid_Mob");
+
+            entity.HasIndex(e => e.FkNodeidNode, "fk_Nodeid_Node");
+
+            entity.HasIndex(e => e.FkSkillsidSkills, "fk_Skillsid_Skills");
+
+            entity.Property(e => e.IdContract)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("int(11)")
+                .HasColumnName("id_Contract");
+            entity.Property(e => e.ContractName)
+                .HasMaxLength(100)
+                .HasColumnName("contractName");
+            entity.Property(e => e.FkContractdifficultyidContractdifficulty)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_ContractDifficultyid_ContractDifficulty");
+            entity.Property(e => e.FkMobidMob)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Mobid_Mob");
+            entity.Property(e => e.FkNodeidNode)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Nodeid_Node");
+            entity.Property(e => e.FkSkillsidSkills)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Skillsid_Skills");
+            entity.Property(e => e.TargetCount)
+                .HasColumnType("int(11)")
+                .HasColumnName("targetCount");
+
+            entity.HasOne(d => d.FkMobidMobNavigation).WithMany()
+                .HasForeignKey(d => d.FkMobidMob)
+                .HasConstraintName("contract_ibfk_2");
+
+            entity.HasOne(d => d.FkContractdifficultyidContractdifficultyNavigation).WithMany(p => p.Contracts)
+                .HasForeignKey(d => d.FkContractdifficultyidContractdifficulty)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("contract_ibfk_4");
+
+            entity.HasOne(d => d.FkNodeidNodeNavigation).WithMany()
+                .HasForeignKey(d => d.FkNodeidNode)
+                .HasConstraintName("contract_ibfk_3");
+
+            entity.HasOne(d => d.FkSkillsidSkillsNavigation).WithMany()
+                .HasForeignKey(d => d.FkSkillsidSkills)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("contract_ibfk_1");
+        });
+
+        modelBuilder.Entity<Contractdifficulty>(entity =>
+        {
+            entity.HasKey(e => e.IdContractDifficulty).HasName("PRIMARY");
+
+            entity.ToTable("contractdifficulty");
+
+            entity.Property(e => e.IdContractDifficulty)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("int(11)")
+                .HasColumnName("id_ContractDifficulty");
+            entity.Property(e => e.Value)
+                .HasMaxLength(50)
+                .HasColumnName("value");
+        });
+
+        modelBuilder.Entity<ContractContractreward>(entity =>
+        {
+            entity.HasKey(e => new { e.FkContractidContract, e.FkContractRewardidContractReward })
+                .HasName("PRIMARY")
+                .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
+
+            entity.ToTable("contract_contractreward");
+
+            entity.HasIndex(e => e.FkContractRewardidContractReward, "fk_ContractRewardid_ContractReward");
+
+            entity.Property(e => e.FkContractidContract)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Contractid_Contract");
+            entity.Property(e => e.FkContractRewardidContractReward)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_ContractRewardid_ContractReward");
+
+            entity.HasOne(d => d.FkContractidContractNavigation).WithMany(p => p.ContractContractrewards)
+                .HasForeignKey(d => d.FkContractidContract)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("contract_contractreward_ibfk_1");
+
+            entity.HasOne(d => d.FkContractRewardidContractRewardNavigation).WithMany(p => p.ContractContractrewards)
+                .HasForeignKey(d => d.FkContractRewardidContractReward)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("contract_contractreward_ibfk_2");
+        });
+
+        modelBuilder.Entity<Contractreward>(entity =>
+        {
+            entity.HasKey(e => e.IdContractReward).HasName("PRIMARY");
+
+            entity.ToTable("contractreward");
+
+            entity.HasIndex(e => e.FkItemidItem, "fk_Itemid_Item");
+
+            entity.Property(e => e.IdContractReward)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("int(11)")
+                .HasColumnName("id_ContractReward");
+            entity.Property(e => e.Chance).HasColumnName("chance");
+            entity.Property(e => e.CoinReward)
+                .HasColumnType("int(11)")
+                .HasColumnName("coinReward");
+            entity.Property(e => e.ContractPoints)
+                .HasColumnType("int(11)")
+                .HasColumnName("contractPoints");
+            entity.Property(e => e.FkItemidItem)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Itemid_Item");
+            entity.Property(e => e.XpReward)
+                .HasColumnType("int(11)")
+                .HasColumnName("xpReward");
+
+            entity.HasOne(d => d.FkItemidItemNavigation).WithMany()
+                .HasForeignKey(d => d.FkItemidItem)
+                .HasConstraintName("contractreward_ibfk_1");
         });
 
         modelBuilder.Entity<Entitystat>(entity =>
@@ -824,6 +964,9 @@ public partial class HypixelIdleContext : DbContext
             entity.Property(e => e.CurrentXp)
                 .HasColumnType("int(11)")
                 .HasColumnName("currentXp");
+            entity.Property(e => e.ContractPoints)
+                .HasColumnType("int(11)")
+                .HasColumnName("contractPoints");
             entity.Property(e => e.Email)
                 .HasMaxLength(100)
                 .HasColumnName("email");
@@ -1015,6 +1158,44 @@ public partial class HypixelIdleContext : DbContext
                 .HasForeignKey(d => d.FkPlayeridPlayer)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("playercollections_ibfk_1");
+        });
+
+        modelBuilder.Entity<Playercontract>(entity =>
+        {
+            entity.HasKey(e => e.IdPlayerContracts).HasName("PRIMARY");
+
+            entity.ToTable("playercontracts");
+
+            entity.HasIndex(e => e.FkContractidContract, "fk_Contractid_Contract");
+
+            entity.HasIndex(e => e.FkPlayeridPlayer, "fk_Playerid_Player");
+
+            entity.HasIndex(e => new { e.FkPlayeridPlayer, e.FkContractidContract }, "uq_player_contract").IsUnique();
+
+            entity.Property(e => e.IdPlayerContracts)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("int(11)")
+                .HasColumnName("id_PlayerContracts");
+            entity.Property(e => e.FkContractidContract)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Contractid_Contract");
+            entity.Property(e => e.FkPlayeridPlayer)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Playerid_Player");
+            entity.Property(e => e.ProgressCount)
+                .HasDefaultValueSql("'0'")
+                .HasColumnType("int(11)")
+                .HasColumnName("progressCount");
+
+            entity.HasOne(d => d.FkContractidContractNavigation).WithMany(p => p.Playercontracts)
+                .HasForeignKey(d => d.FkContractidContract)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("playercontracts_ibfk_2");
+
+            entity.HasOne(d => d.FkPlayeridPlayerNavigation).WithMany(p => p.Playercontracts)
+                .HasForeignKey(d => d.FkPlayeridPlayer)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("playercontracts_ibfk_1");
         });
 
         modelBuilder.Entity<Playerequipment>(entity =>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import { formatDisplayName } from './DisplayNameUtils';
 import { BLOCK_TEXTURE_BY_FILE, resolveIconPath } from './MiningUtils';
 import '../Styles/CollectionsStyles.css';
@@ -66,7 +67,7 @@ const Collection = ({ playerId: playerIdProp = null }) => {
 				setIsLoading(true);
 				setError('');
 
-				const response = await axios.get('http://localhost:5091/api/Collection/GetCollectionOverview', {
+				const response = await axios.get(API_BASE + '/Collection/GetCollectionOverview', {
 					params: resolvedPlayerId ? { playerId: resolvedPlayerId } : undefined,
 					headers: {
 						Accept: 'application/json',

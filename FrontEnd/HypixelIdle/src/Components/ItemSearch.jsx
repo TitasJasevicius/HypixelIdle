@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import { BLOCK_TEXTURE_BY_FILE, normalizeItem, resolveIconPath } from './MiningUtils';
 import { formatDisplayName } from './DisplayNameUtils';
 import { formatDropChancePercent, formatDropQuantityRange } from './CombatUtils';
@@ -75,10 +76,10 @@ const formatStatValue = (statEntry) => {
 };
 
 const ItemSearch = ({
-	itemsEndpoint = 'http://localhost:5091/api/Item/GetItems',
-	recipesEndpoint = 'http://localhost:5091/api/Recipes/GetRecipes',
-	statsEndpoint = 'http://localhost:5091/api/Stats/GetStats',
-	mobsEndpoint = 'http://localhost:5091/api/Mob/GetCombatMobs',
+	itemsEndpoint = API_BASE + '/Item/GetItems',
+	recipesEndpoint = API_BASE + '/Recipes/GetRecipes',
+	statsEndpoint = API_BASE + '/Stats/GetStats',
+	mobsEndpoint = API_BASE + '/Mob/GetCombatMobs',
 	title = 'Item Search',
 	triggerLabel = 'Items',
 }) => {
@@ -264,7 +265,7 @@ const ItemSearch = ({
 
 		const fetchItemStats = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetItemStats', {
 					params: { itemId },
 					headers: {
 						Accept: 'application/json',

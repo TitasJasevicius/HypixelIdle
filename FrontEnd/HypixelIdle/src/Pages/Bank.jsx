@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import Purse from '../Components/Purse';
 import '../Styles/GlobalStyles.css';
 import '../Styles/BankStyles.css';
@@ -46,11 +47,11 @@ const Bank = () => {
 			setError('');
 
 			const [bankResponse, purseResponse] = await Promise.all([
-				axios.get('http://localhost:5091/api/Bank/GetBank', {
+				axios.get(API_BASE + '/Bank/GetBank', {
 					params: { playerId },
 					headers: { Accept: 'application/json' },
 				}),
-				axios.get('http://localhost:5091/api/Purse/GetPurse', {
+				axios.get(API_BASE + '/Purse/GetPurse', {
 					params: { playerId },
 					headers: { Accept: 'application/json' },
 				}),
@@ -90,7 +91,7 @@ const Bank = () => {
 			setError('');
 			setSuccessMessage('');
 
-			await axios.put('http://localhost:5091/api/Purse/UpdatePurse', null, {
+			await axios.put(API_BASE + '/Purse/UpdatePurse', null, {
 				params: {
 					playerId,
 					amountBalance: -parsedAmount,
@@ -99,7 +100,7 @@ const Bank = () => {
 				headers: { Accept: 'application/json' },
 			});
 
-			await axios.put('http://localhost:5091/api/Bank/UpdateBank', null, {
+			await axios.put(API_BASE + '/Bank/UpdateBank', null, {
 				params: {
 					playerId,
 					amountBalance: parsedAmount,
@@ -135,7 +136,7 @@ const Bank = () => {
 			setError('');
 			setSuccessMessage('');
 
-			await axios.put('http://localhost:5091/api/Bank/UpdateBank', null, {
+			await axios.put(API_BASE + '/Bank/UpdateBank', null, {
 				params: {
 					playerId,
 					amountBalance: -parsedAmount,
@@ -143,7 +144,7 @@ const Bank = () => {
 				headers: { Accept: 'application/json' },
 			});
 
-			await axios.put('http://localhost:5091/api/Purse/UpdatePurse', null, {
+			await axios.put(API_BASE + '/Purse/UpdatePurse', null, {
 				params: {
 					playerId,
 					amountBalance: parsedAmount,

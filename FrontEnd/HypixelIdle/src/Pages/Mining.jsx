@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import MiningBlock from '../Components/MiningBlock';
 import MiningSpecialEvent from '../Components/MiningSpecialEvent';
 import Inventory from '../Components/Inventory';
@@ -121,18 +122,18 @@ const Mining = () => {
 				setPurseError('');
 
 				const requests = [
-					axios.get('http://localhost:5091/api/Node/GetNodes', {
+					axios.get(API_BASE + '/Node/GetNodes', {
 						params: playerId ? { playerId } : undefined,
 						headers: {
 							Accept: 'application/json',
 						},
 					}),
-					axios.get('http://localhost:5091/api/Item/GetItems', {
+					axios.get(API_BASE + '/Item/GetItems', {
 						headers: {
 							Accept: 'application/json',
 						},
 					}),
-					axios.get('http://localhost:5091/api/Skills/GetSkills', {
+					axios.get(API_BASE + '/Skills/GetSkills', {
 						headers: {
 							Accept: 'application/json',
 						},
@@ -141,7 +142,7 @@ const Mining = () => {
 
 				if (playerId) {
 					requests.push(
-						axios.get('http://localhost:5091/api/PlayerSkills/GetPlayerSkills', {
+						axios.get(API_BASE + '/PlayerSkills/GetPlayerSkills', {
 							params: {
 								playerId,
 							},
@@ -154,7 +155,7 @@ const Mining = () => {
 						);
 
 						requests.push(
-							axios.get('http://localhost:5091/api/Purse/GetPurse', {
+							axios.get(API_BASE + '/Purse/GetPurse', {
 								params: {
 									playerId,
 								},
@@ -240,7 +241,7 @@ const Mining = () => {
 		}
 
 		try {
-			const response = await axios.post('http://localhost:5091/api/PlayerSkills/GrantSkillXp', {
+			const response = await axios.post(API_BASE + '/PlayerSkills/GrantSkillXp', {
 				playerId,
 				skillId,
 				xpToAdd,
@@ -443,7 +444,7 @@ const Mining = () => {
 		try {
 			setIsSavingDrop(true);
 
-			await axios.post('http://localhost:5091/api/Inventory/AddItemToInventory', {
+			await axios.post(API_BASE + '/Inventory/AddItemToInventory', {
 				playerId,
 				itemId,
 				quantity,
@@ -465,6 +466,26 @@ const Mining = () => {
 					return next;
 				});
 			}
+
+			if (selectedNode?.idNode) {
+				try {
+					await axios.post(API_BASE + '/PlayerContracts/AddNodeMineProgress', {
+						playerId,
+						nodeId: selectedNode.idNode,
+						amountToAdd: 1,
+					}, {
+						headers: {
+							Accept: 'application/json',
+							...getAuthHeaders(),
+						},
+					});
+
+					window.dispatchEvent(new Event('contracts-updated'));
+				} catch (contractError) {
+					console.error('Failed to update node contract progress:', contractError);
+				}
+			}
+
 			setInventoryRefreshTick((prev) => prev + 1);
 			setCollectionProgressTick((prev) => prev + quantity);
 			return true;
@@ -505,7 +526,7 @@ const Mining = () => {
 			setIsUnlockingNode(true);
 			setDropError('');
 
-			await axios.post('http://localhost:5091/api/Node/UnlockNode', {
+			await axios.post(API_BASE + '/Node/UnlockNode', {
 				playerId,
 				nodeId: nodeToUnlock.idNode,
 			}, {
@@ -674,6 +695,7 @@ const Mining = () => {
 					<PlayerCollection
 						playerId={playerId}
 						itemName={itemName}
+						itemId={currentOutputItemId}
 						collectionId={collectionId}
 						progressTick={collectionProgressTick}
 					/>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 
 const decodeJwtPayload = (token) => {
@@ -71,7 +72,7 @@ const LoginForm = ({ onToggle, classPrefix = 'auth' }) => {
         }
 
         try {
-            const response = await axios.post('http://localhost:5091/api/auth/Login', {
+            const response = await axios.post(API_BASE + '/auth/Login', {
                 username: loginForm.username,
                 password: loginForm.password
             });

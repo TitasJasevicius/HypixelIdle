@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import DisplayItemInfo from './DisplayItemInfo';
 import { formatDisplayName } from './DisplayNameUtils';
 import {
@@ -125,7 +126,7 @@ const PlayerEquipment = ({
 				setIsLoading(true);
 				setError('');
 
-				const response = await axios.get('http://localhost:5091/api/PlayerEquipment/GetPlayerEquipment', {
+				const response = await axios.get(API_BASE + '/PlayerEquipment/GetPlayerEquipment', {
 					params: { playerId },
 					headers: {
 						Accept: 'application/json',
@@ -148,7 +149,7 @@ const PlayerEquipment = ({
 	useEffect(() => {
 		const fetchStatsCatalog = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetStats', {
 					headers: {
 						Accept: 'application/json',
 						...getAuthHeaders(),
@@ -204,7 +205,7 @@ const PlayerEquipment = ({
 
 		const fetchItemStats = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetItemStats', {
 					params: { itemId },
 					headers: {
 						Accept: 'application/json',
@@ -274,7 +275,7 @@ const PlayerEquipment = ({
 
 		try {
 			setIsUnequipping(true);
-			await axios.post('http://localhost:5091/api/PlayerEquipment/UnequipPlayerItem', {
+			await axios.post(API_BASE + '/PlayerEquipment/UnequipPlayerItem', {
 				playerId,
 				equipmentSlotId: selectedRow.slot,
 			}, {

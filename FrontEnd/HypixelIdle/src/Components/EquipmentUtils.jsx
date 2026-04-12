@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 
 const normalizeText = (value) => (value ?? '').toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -51,7 +52,7 @@ const getAuthHeaders = () => {
 };
 
 export const fetchEquipmentSlotDefinitions = async () => {
-	const response = await axios.get('http://localhost:5091/api/PlayerEquipment/GetEquipmentTypes', {
+	const response = await axios.get(API_BASE + '/PlayerEquipment/GetEquipmentTypes', {
 		headers: {
 			Accept: 'application/json',
 			...getAuthHeaders(),

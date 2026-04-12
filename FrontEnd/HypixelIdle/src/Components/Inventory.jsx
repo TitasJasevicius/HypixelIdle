@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import { formatDisplayName } from './DisplayNameUtils';
 import DisplayItemInfo from './DisplayItemInfo';
 import { fetchEquipmentSlotDefinitions, getEquipmentSlotLabelForItem, isEquipmentItem } from './EquipmentUtils';
@@ -127,7 +128,7 @@ const Inventory = ({
 	useEffect(() => {
 		const fetchStatsCatalog = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetStats', {
 					headers: {
 						Accept: 'application/json',
 						...getAuthHeaders(),
@@ -170,7 +171,7 @@ const Inventory = ({
 				}
 				setError('');
 
-				const response = await axios.get('http://localhost:5091/api/Inventory/GetInventory', {
+				const response = await axios.get(API_BASE + '/Inventory/GetInventory', {
 					params: {
 						playerId,
 					},
@@ -241,7 +242,7 @@ const Inventory = ({
 
 		const fetchItemStats = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetItemStats', {
 					params: { itemId },
 					headers: {
 						Accept: 'application/json',
@@ -333,7 +334,7 @@ const Inventory = ({
 		try {
 			setIsEquipping(true);
 
-			await axios.post('http://localhost:5091/api/PlayerEquipment/EquipPlayerItem', {
+			await axios.post(API_BASE + '/PlayerEquipment/EquipPlayerItem', {
 				playerId,
 				inventorySlotId: selectedSlot.idPlayerInventorySlots,
 			}, {

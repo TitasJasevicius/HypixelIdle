@@ -78,7 +78,39 @@ namespace HypixelidleBackEnd.Controllers
 
             Collection? collection = null;
 
-            if (request.CollectionId.HasValue && request.CollectionId.Value > 0)
+            if (request.ItemId.HasValue && request.ItemId.Value > 0)
+            {
+                var itemId = request.ItemId.Value;
+
+                var collectionIdFromTier = await _context.Collectiontiers
+                    .AsNoTracking()
+                    .Where(collectionTier => collectionTier.FkItemidItem == itemId)
+                    .Select(collectionTier => (int?)collectionTier.FkCollectionidCollection)
+                    .FirstOrDefaultAsync();
+
+                if (collectionIdFromTier.HasValue)
+                {
+                    collection = await _context.Collections
+                        .FirstOrDefaultAsync(currentCollection => currentCollection.IdCollection == collectionIdFromTier.Value);
+                }
+
+                if (collection == null)
+                {
+                    var collectionIdFromItem = await _context.Items
+                        .AsNoTracking()
+                        .Where(item => item.IdItem == itemId)
+                        .Select(item => item.FkCollectionidCollection)
+                        .FirstOrDefaultAsync();
+
+                    if (collectionIdFromItem.HasValue)
+                    {
+                        collection = await _context.Collections
+                            .FirstOrDefaultAsync(currentCollection => currentCollection.IdCollection == collectionIdFromItem.Value);
+                    }
+                }
+            }
+
+            if (collection == null && request.CollectionId.HasValue && request.CollectionId.Value > 0)
             {
                 collection = await _context.Collections
                     .FirstOrDefaultAsync(c => c.IdCollection == request.CollectionId.Value);
@@ -176,6 +208,8 @@ namespace HypixelidleBackEnd.Controllers
         public sealed class CollectionProgressRequest
         {
             public int PlayerId { get; set; }
+
+            public int? ItemId { get; set; }
 
             public int? CollectionId { get; set; }
 

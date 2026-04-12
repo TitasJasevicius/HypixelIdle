@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 import { getAuthHeaders, toNumberOrNull } from './MiningUtils';
 
 const SELLING_SELECTED_ITEM_STORAGE_KEY = 'sellingSelectedInventoryItem';
@@ -80,7 +81,7 @@ export const useCalculateMiningSpeed = () => {
 	useEffect(() => {
 		const fetchStatsCatalog = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetStats', {
 					headers: {
 						Accept: 'application/json',
 						...getAuthHeaders(),
@@ -159,7 +160,7 @@ export const useCalculateMiningSpeed = () => {
 
 		const fetchItemMiningSpeed = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetItemStats', {
 					params: {
 						itemId: selectedMiningItemId,
 					},
@@ -231,7 +232,7 @@ export const useCalculateForagingSpeed = () => {
 	useEffect(() => {
 		const fetchStatsCatalog = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetStats', {
 					headers: {
 						Accept: 'application/json',
 						...getAuthHeaders(),
@@ -310,7 +311,7 @@ export const useCalculateForagingSpeed = () => {
 
 		const fetchItemForagingSpeed = async () => {
 			try {
-				const response = await axios.get('http://localhost:5091/api/Stats/GetItemStats', {
+				const response = await axios.get(API_BASE + '/Stats/GetItemStats', {
 					params: {
 						itemId: selectedForagingItemId,
 					},
