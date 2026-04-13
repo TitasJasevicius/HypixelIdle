@@ -14,6 +14,7 @@ const getPlayerId = () => {
 const normalizeContract = (contract) => ({
 	contractId: Number(contract.contractId ?? contract.ContractId ?? 0),
 	contractName: contract.contractName ?? contract.ContractName ?? 'Unnamed Contract',
+	difficultyId: Number(contract.difficultyId ?? contract.DifficultyId ?? Number.MAX_SAFE_INTEGER),
 	difficulty: contract.difficulty ?? contract.Difficulty ?? 'Easy',
 	targetCount: Number(contract.targetCount ?? contract.TargetCount ?? 1),
 	skillName: contract.skillName ?? contract.SkillName ?? 'Unknown',
@@ -44,6 +45,19 @@ const formatDisplayName = (value) => {
 	const normalized = (value ?? '').toString().trim();
 	if (!normalized) {
 		return 'Unknown';
+	}
+
+	return normalized.replace(/_/g, ' ');
+};
+
+const formatStatusMessage = (value, fallbackMessage) => {
+	if (typeof value !== 'string') {
+		return fallbackMessage;
+	}
+
+	const normalized = value.trim();
+	if (!normalized) {
+		return fallbackMessage;
 	}
 
 	return normalized.replace(/_/g, ' ');
@@ -133,15 +147,30 @@ const Contracts = () => {
 	}, [fetchContracts]);
 
 	const difficultyOptions = useMemo(() => {
-		const values = new Set();
+		const values = new Map();
 		for (const contract of allContracts) {
 			const difficulty = (contract.difficulty ?? '').toString().trim();
 			if (difficulty) {
-				values.add(difficulty);
+				const difficultyId = Number.isFinite(contract.difficultyId)
+					? contract.difficultyId
+					: Number.MAX_SAFE_INTEGER;
+
+				const existingDifficultyId = values.get(difficulty);
+				if (existingDifficultyId === undefined || difficultyId < existingDifficultyId) {
+					values.set(difficulty, difficultyId);
+				}
 			}
 		}
 
-		return Array.from(values).sort((left, right) => left.localeCompare(right));
+		return Array.from(values.entries())
+			.sort((left, right) => {
+				if (left[1] !== right[1]) {
+					return left[1] - right[1];
+				}
+
+				return left[0].localeCompare(right[0]);
+			})
+			.map(([difficulty]) => difficulty);
 	}, [allContracts]);
 
 	useEffect(() => {
@@ -194,7 +223,7 @@ const Contracts = () => {
 		} catch (requestError) {
 			console.error('Failed to assign contract', requestError);
 			const apiMessage = requestError?.response?.data;
-			setStatusMessage(typeof apiMessage === 'string' ? apiMessage : 'Failed to accept contract.');
+			setStatusMessage(formatStatusMessage(apiMessage, 'Failed to accept contract.'));
 		} finally {
 			setBusyContractId(null);
 		}
@@ -230,7 +259,7 @@ const Contracts = () => {
 		} catch (requestError) {
 			const apiMessage = requestError?.response?.data;
 			console.error('Failed to complete contract', requestError);
-			setStatusMessage(typeof apiMessage === 'string' ? apiMessage : 'Contract is not ready to complete.');
+			setStatusMessage(formatStatusMessage(apiMessage, 'Contract is not ready to complete.'));
 		} finally {
 			setBusyContractId(null);
 		}
@@ -261,7 +290,7 @@ const Contracts = () => {
 		} catch (requestError) {
 			const apiMessage = requestError?.response?.data;
 			console.error('Failed to cancel contract', requestError);
-			setStatusMessage(typeof apiMessage === 'string' ? apiMessage : 'Failed to cancel contract.');
+			setStatusMessage(formatStatusMessage(apiMessage, 'Failed to cancel contract.'));
 		} finally {
 			setBusyContractId(null);
 		}

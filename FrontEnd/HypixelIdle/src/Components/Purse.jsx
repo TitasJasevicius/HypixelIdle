@@ -22,6 +22,7 @@ const normalizePurse = (purse) => ({
 
 const Purse = ({ className = '', playerId = null, refreshKey = 0 }) => {
 	const [purse, setPurse] = useState(null);
+	const [ctpBalance, setCtpBalance] = useState(0);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState('');
 	const [eventRefreshTick, setEventRefreshTick] = useState(0);
@@ -50,6 +51,7 @@ const Purse = ({ className = '', playerId = null, refreshKey = 0 }) => {
 		const fetchPurse = async () => {
 			if (!resolvedPlayerId) {
 				setPurse(null);
+				setCtpBalance(0);
 				setError('Missing player id.');
 				setIsLoading(false);
 				return;
@@ -59,20 +61,34 @@ const Purse = ({ className = '', playerId = null, refreshKey = 0 }) => {
 				setIsLoading(true);
 				setError('');
 
-				const response = await axios.get(API_BASE + '/Purse/GetPurse', {
-					params: {
-						playerId: resolvedPlayerId,
-					},
-					headers: {
-						Accept: 'application/json',
-					},
-				});
+				const [purseResponse, ctpResponse] = await Promise.all([
+					axios.get(API_BASE + '/Purse/GetPurse', {
+						params: {
+							playerId: resolvedPlayerId,
+						},
+						headers: {
+							Accept: 'application/json',
+						},
+					}),
+					axios.get(API_BASE + '/ContractPointsShop/GetPlayerContractPoints', {
+						params: {
+							playerId: resolvedPlayerId,
+						},
+						headers: {
+							Accept: 'application/json',
+						},
+					}),
+				]);
 
-				setPurse(normalizePurse(response.data ?? {}));
+				setPurse(normalizePurse(purseResponse.data ?? {}));
+
+				const ctpValue = Number(ctpResponse.data?.contractPoints ?? ctpResponse.data?.ContractPoints ?? 0);
+				setCtpBalance(Number.isFinite(ctpValue) ? Math.max(0, ctpValue) : 0);
 			} catch (fetchError) {
 				console.error('Failed to load purse:', fetchError);
 				setError('Failed to load purse.');
 				setPurse(null);
+				setCtpBalance(0);
 			} finally {
 				setIsLoading(false);
 			}
@@ -83,6 +99,7 @@ const Purse = ({ className = '', playerId = null, refreshKey = 0 }) => {
 
 	const balanceText = purse ? Number(purse.balance).toFixed(2) : '0.00';
 	const bitsText = purse ? String(purse.bits) : '0';
+	const ctpText = String(ctpBalance);
 
 	return (
 		<section className={`purse-card ${className}`.trim()} aria-label="Purse">
@@ -93,6 +110,10 @@ const Purse = ({ className = '', playerId = null, refreshKey = 0 }) => {
 			<div className="purse-row">
 				<span className="purse-label">Bits</span>
 				<strong className="purse-value">{isLoading ? '...' : bitsText}</strong>
+			</div>
+			<div className="purse-row">
+				<span className="purse-label">Contract Points</span>
+				<strong className="purse-value">{isLoading ? '...' : ctpText}</strong>
 			</div>
 			{error ? <p className="purse-error">{error}</p> : null}
 		</section>

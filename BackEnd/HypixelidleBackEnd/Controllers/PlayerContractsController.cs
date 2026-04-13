@@ -338,48 +338,45 @@ namespace HypixelidleBackEnd.Controllers
 
             foreach (var reward in resolvedRewards)
             {
-                var normalizedChance = NormalizeRewardChance(reward.Chance);
-                var awarded = random.NextDouble() <= normalizedChance;
+                var xpToAward = reward.XpReward.HasValue && reward.XpReward.Value > 0
+                    ? reward.XpReward.Value
+                    : 0;
+                var coinsToAward = reward.CoinReward.HasValue && reward.CoinReward.Value > 0
+                    ? reward.CoinReward.Value
+                    : 0;
+                var contractPointsToAward = reward.ContractPoints > 0
+                    ? reward.ContractPoints
+                    : 0;
 
-                if (awarded)
+                totalXpAwarded += xpToAward;
+                totalCoinsAwarded += coinsToAward;
+                totalContractPointsAwarded += contractPointsToAward;
+
+                var hasItemReward = reward.FkItemidItem.HasValue && reward.FkItemidItem.Value > 0;
+                var normalizedChance = hasItemReward ? NormalizeRewardChance(reward.Chance) : 1f;
+                var itemAwarded = hasItemReward && random.NextDouble() <= normalizedChance;
+
+                if (itemAwarded)
                 {
-                    if (reward.XpReward.HasValue && reward.XpReward.Value > 0)
+                    if (!itemRewards.ContainsKey(reward.FkItemidItem!.Value))
                     {
-                        totalXpAwarded += reward.XpReward.Value;
+                        itemRewards[reward.FkItemidItem.Value] = 0;
                     }
 
-                    if (reward.CoinReward.HasValue && reward.CoinReward.Value > 0)
-                    {
-                        totalCoinsAwarded += reward.CoinReward.Value;
-                    }
-
-                    if (reward.ContractPoints > 0)
-                    {
-                        totalContractPointsAwarded += reward.ContractPoints;
-                    }
-
-                    if (reward.FkItemidItem.HasValue && reward.FkItemidItem.Value > 0)
-                    {
-                        if (!itemRewards.ContainsKey(reward.FkItemidItem.Value))
-                        {
-                            itemRewards[reward.FkItemidItem.Value] = 0;
-                        }
-
-                        itemRewards[reward.FkItemidItem.Value] += 1;
-                    }
+                    itemRewards[reward.FkItemidItem.Value] += 1;
                 }
 
                 rolledRewards.Add(new RewardRollResult
                 {
                     ContractRewardId = reward.IdContractReward,
                     Chance = normalizedChance,
-                    Awarded = awarded,
-                    XpReward = awarded ? reward.XpReward : 0,
-                    CoinReward = awarded ? reward.CoinReward : 0,
-                    ContractPoints = awarded ? reward.ContractPoints : 0,
+                    Awarded = !hasItemReward || itemAwarded,
+                    XpReward = xpToAward,
+                    CoinReward = coinsToAward,
+                    ContractPoints = contractPointsToAward,
                     ItemRewardId = reward.FkItemidItem,
                     ItemRewardName = reward.FkItemidItemNavigation?.Name,
-                    ItemRewardQuantity = awarded && reward.FkItemidItem.HasValue ? 1 : 0,
+                    ItemRewardQuantity = itemAwarded ? 1 : 0,
                 });
             }
 

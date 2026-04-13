@@ -28,8 +28,9 @@
 }
 
 .difficulty-button.is-active {
-    border-color: rgba(255, 172, 109, 0.85);
-    background: rgba(255, 172, 109, 0.2);
+    border-color: rgba(110, 194, 255, 0.6);
+    background: rgba(110, 194, 255, 0.14);
+    color: #b5e4ff;
 }
 
 .contracts-columns {

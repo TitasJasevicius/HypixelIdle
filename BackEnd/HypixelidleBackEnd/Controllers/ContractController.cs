@@ -63,12 +63,13 @@ namespace HypixelidleBackEnd.Controllers
             }
 
             var contracts = await query
-                .OrderBy(contract => contract.FkContractdifficultyidContractdifficultyNavigation.Value)
+                .OrderBy(contract => contract.FkContractdifficultyidContractdifficulty)
                 .ThenBy(contract => contract.ContractName)
                 .Select(contract => new ContractDefinitionResponse
                 {
                     ContractId = contract.IdContract,
                     ContractName = contract.ContractName,
+                    DifficultyId = contract.FkContractdifficultyidContractdifficulty,
                     Difficulty = contract.FkContractdifficultyidContractdifficultyNavigation.Value,
                     TargetCount = contract.TargetCount,
                     SkillId = contract.FkSkillsidSkills,
@@ -145,6 +146,8 @@ namespace HypixelidleBackEnd.Controllers
             public int ContractId { get; set; }
 
             public string ContractName { get; set; } = string.Empty;
+
+            public int DifficultyId { get; set; }
 
             public string Difficulty { get; set; } = string.Empty;
 

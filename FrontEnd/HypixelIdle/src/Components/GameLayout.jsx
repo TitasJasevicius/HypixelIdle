@@ -119,6 +119,7 @@ const GameLayout = () => {
                     { id: 'progress-collections', label: 'Collections', to: '/collections' },
                     { id: 'progress-leaderboard', label: 'Leaderboard', to: '/leaderboard' },
                     { id: 'progress-contracts', label: 'Contracts', to: '/contracts' },
+                    { id: 'progress-contract-points-shop', label: 'Contract Points Shop', to: '/contract-points-shop' },
                 ],
             },
             {

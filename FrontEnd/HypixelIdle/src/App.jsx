@@ -12,6 +12,7 @@ import CraftingTable from './Components/CraftingTable';
 import Collections from './Pages/Collections';
 import Leaderboard from './Pages/Leaderboard';
 import Contracts from './Pages/Contracts';
+import ContractPointsShop from './Pages/ContractPointsShop';
 
 const getIsAuthenticated = () => {
   const token = localStorage.getItem('accessToken');
@@ -63,6 +64,7 @@ function App() {
           <Route path="collections" element={<Collections />} />
           <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="contracts" element={<Contracts />} />
+          <Route path="contract-points-shop" element={<ContractPointsShop />} />
           <Route path="bank" element={<Bank />} />
           <Route path="crafting" element={<CraftingTable />} />
           <Route path="skin-render" element={<PlayerSkinRender />} />

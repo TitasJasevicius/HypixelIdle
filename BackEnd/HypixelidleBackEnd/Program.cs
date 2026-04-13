@@ -19,7 +19,7 @@ builder.Services.AddCors(options =>
         //builder.AllowAnyMethod().AllowAnyHeader().WithOrigins("http://localhost:3000", "https://appname.azurestaticapps.net");
         builder.AllowAnyMethod()
                .AllowAnyHeader()
-               .AllowAnyOrigin(); // Allow all origins
+               .AllowAnyOrigin(); 
     });
 });
 
@@ -53,7 +53,7 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Optional admin bypass key for protected endpoints"
     });
 
-    // Add as separate requirement objects so either Bearer OR AdminKey can authorize requests.
+    
     options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
     {
         {
@@ -141,7 +141,7 @@ builder.Services.AddScoped<NodeController>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+//Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

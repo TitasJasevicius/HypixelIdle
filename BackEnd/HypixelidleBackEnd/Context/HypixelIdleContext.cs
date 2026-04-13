@@ -36,6 +36,8 @@ public partial class HypixelIdleContext : DbContext
 
     public virtual DbSet<Contractreward> Contractrewards { get; set; }
 
+    public virtual DbSet<Contractpointsshop> Contractpointsshops { get; set; }
+
     public virtual DbSet<Entitystat> Entitystats { get; set; }
 
     public virtual DbSet<Equipmenttype> Equipmenttypes { get; set; }
@@ -117,8 +119,9 @@ public partial class HypixelIdleContext : DbContext
     public virtual DbSet<Tier> Tiers { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseMySql("server=localhost;port=3306;database=hypixelidle;user=root", Microsoft.EntityFrameworkCore.ServerVersion.Parse("10.6.20-mariadb"));
+    {
+        //empty , look program.cs
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -435,6 +438,64 @@ public partial class HypixelIdleContext : DbContext
             entity.HasOne(d => d.FkItemidItemNavigation).WithMany()
                 .HasForeignKey(d => d.FkItemidItem)
                 .HasConstraintName("contractreward_ibfk_1");
+        });
+
+        modelBuilder.Entity<Contractpointsshop>(entity =>
+        {
+            entity.HasKey(e => e.IdContractPointsShop).HasName("PRIMARY");
+
+            entity.ToTable("contractpointsshop");
+
+            entity.HasIndex(e => e.FkCollectionidCollection, "fk_Collectionid_Collection");
+
+            entity.HasIndex(e => e.FkItemidItem, "fk_Itemid_Item");
+
+            entity.HasIndex(e => e.FkSkillsidSkills, "fk_Skillsid_Skills");
+
+            entity.Property(e => e.IdContractPointsShop)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("int(11)")
+                .HasColumnName("id_ContractPointsShop");
+            entity.Property(e => e.EndAt)
+                .HasColumnType("date")
+                .HasColumnName("endAt");
+            entity.Property(e => e.FkCollectionidCollection)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Collectionid_Collection");
+            entity.Property(e => e.FkItemidItem)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Itemid_Item");
+            entity.Property(e => e.FkSkillsidSkills)
+                .HasColumnType("int(11)")
+                .HasColumnName("fk_Skillsid_Skills");
+            entity.Property(e => e.Price)
+                .HasColumnType("int(11)")
+                .HasColumnName("price");
+            entity.Property(e => e.Quantity)
+                .HasColumnType("int(11)")
+                .HasColumnName("quantity");
+            entity.Property(e => e.RequiredCollectionTier)
+                .HasColumnType("int(11)")
+                .HasColumnName("requiredCollectionTier");
+            entity.Property(e => e.SkillLevel)
+                .HasColumnType("int(11)")
+                .HasColumnName("skillLevel");
+            entity.Property(e => e.StartAt)
+                .HasColumnType("date")
+                .HasColumnName("startAt");
+
+            entity.HasOne(d => d.FkCollectionidCollectionNavigation).WithMany()
+                .HasForeignKey(d => d.FkCollectionidCollection)
+                .HasConstraintName("contractpointsshop_ibfk_2");
+
+            entity.HasOne(d => d.FkItemidItemNavigation).WithMany()
+                .HasForeignKey(d => d.FkItemidItem)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("contractpointsshop_ibfk_1");
+
+            entity.HasOne(d => d.FkSkillsidSkillsNavigation).WithMany()
+                .HasForeignKey(d => d.FkSkillsidSkills)
+                .HasConstraintName("contractpointsshop_ibfk_3");
         });
 
         modelBuilder.Entity<Entitystat>(entity =>

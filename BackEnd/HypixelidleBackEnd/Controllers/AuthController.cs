@@ -1,4 +1,3 @@
-using HypixelidleBackEnd.Contracts.Auth;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -47,5 +46,19 @@ public class AuthController : ControllerBase
             AccessToken = accessToken,
             AccessTokenExpiresAtUtc = accessTokenExpiresAtUtc
         });
+    }
+
+    public sealed class LoginRequest
+    {
+        public string Username { get; set; } = string.Empty;
+
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public sealed class AuthResponse
+    {
+        public string AccessToken { get; set; } = string.Empty;
+
+        public DateTime AccessTokenExpiresAtUtc { get; set; }
     }
 }

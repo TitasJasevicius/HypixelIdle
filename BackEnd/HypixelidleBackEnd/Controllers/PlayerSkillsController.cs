@@ -1,4 +1,3 @@
-using HypixelidleBackEnd.Contracts.Auth;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
 using Microsoft.AspNetCore.Authorization;
