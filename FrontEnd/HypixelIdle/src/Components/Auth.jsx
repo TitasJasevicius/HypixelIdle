@@ -18,6 +18,9 @@ const Auth = ({ initialMode = 'register' }) => {
     return (
         <div className="auth-page">
             <main className="auth-main">
+                <header className="auth-brand-header" aria-label="Project name">
+                    <h1 className="auth-brand-title">Hidle</h1>
+                </header>
                 <section className="auth-glass">
                     {isLogin ? (
                         <LoginForm onToggle={toggleForm} />

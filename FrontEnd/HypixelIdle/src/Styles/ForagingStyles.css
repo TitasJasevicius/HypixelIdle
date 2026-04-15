@@ -2,8 +2,8 @@
   --foraging-bg: radial-gradient(circle at 20% 15%, #203846 0%, #142734 30%, #0e1c26 65%, #0b1720 100%);
   --foraging-panel: rgba(8, 17, 25, 0.86);
   --foraging-border: rgba(159, 191, 216, 0.35);
-  --foraging-text: #ebf5ff;
-  --foraging-muted: #a8c0d8;
+  --foraging-text: #e9f1ff;
+  --foraging-muted: #adc4df;
   --foraging-accent: #78c8ff;
   --foraging-good: #8ee38c;
 }
@@ -60,8 +60,8 @@
 }
 
 .foraging-zone-picker-button {
-  border: 1px solid var(--foraging-border);
-  background: rgba(12, 28, 39, 0.9);
+  border: 1px solid rgba(123, 185, 228, 0.55);
+	background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
   color: var(--foraging-text);
   border-radius: 0.6rem;
   padding: 0.5rem 0.8rem;
@@ -394,8 +394,8 @@
 }
 
 .foraging-zone-modal-close {
-  border: 1px solid var(--foraging-border);
-  background: rgba(14, 30, 43, 0.9);
+  border: 1px solid rgba(123, 185, 228, 0.55);
+	background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
   color: var(--foraging-text);
   padding: 0.35rem 0.6rem;
   border-radius: 0.55rem;

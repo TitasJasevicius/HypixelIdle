@@ -2,10 +2,10 @@
   --mining-bg: radial-gradient(circle at 20% 15%, #203846 0%, #142734 30%, #0e1c26 65%, #0b1720 100%);
   --mining-panel: rgba(8, 17, 25, 0.86);
   --mining-border: rgba(159, 191, 216, 0.35);
-  --mining-text: #ebf5ff;
-  --mining-muted: #a8c0d8;
+  --mining-text: #e9f1ff;
+  --mining-muted: #adc4df;
   --mining-accent: #78c8ff;
-  --mining-good: #8ee38c;
+  --mining-good: #9fe86c;
 }
 
 .mining-page {
@@ -60,8 +60,8 @@
 }
 
 .zone-picker-button {
-  border: 1px solid var(--mining-border);
-  background: rgba(8, 17, 25, 0.78);
+  border: 1px solid rgba(123, 185, 228, 0.55);
+	background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
   color: var(--mining-text);
   border-radius: 0.6rem;
   padding: 0.5rem 0.8rem;
@@ -256,7 +256,7 @@
 
 .node-meta {
   margin-top: 0.35rem;
-  color: var(--mining-muted);
+  color: #adc4df;
 }
 
 .zone-node-list {
@@ -316,8 +316,8 @@
 }
 
 .zone-modal-close {
-  border: 1px solid var(--mining-border);
-  background: rgba(14, 30, 43, 0.9);
+  border: 1px solid rgba(123, 185, 228, 0.55);
+	background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
   color: var(--mining-text);
   padding: 0.35rem 0.6rem;
   border-radius: 0.55rem;

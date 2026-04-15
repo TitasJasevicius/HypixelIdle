@@ -19,9 +19,9 @@
 }
 
 .difficulty-button {
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.08);
-    color: inherit;
+    border: 1px solid rgba(123, 185, 228, 0.55);
+	background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
+    color: #e9f1ff;
     border-radius: 8px;
     padding: 0.5rem 0.75rem;
     cursor: pointer;
@@ -134,7 +134,7 @@
 .contract-cancel-button {
     border: 1px solid rgba(255, 129, 129, 0.45);
     background: rgba(55, 17, 20, 0.55);
-    color: #ffd9d9;
+    color: #e9f1ff;
     border-radius: 0.55rem;
     padding: 0.45rem 0.65rem;
     font-family: var(--main-text-font);

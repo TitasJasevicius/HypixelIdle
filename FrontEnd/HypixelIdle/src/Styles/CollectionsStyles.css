@@ -13,7 +13,7 @@
 
 .collections-page-header p {
 	margin: 0.4rem 0 0;
-	color: #a7c0d7;
+	color: #adc4df;
 }
 
 .collections-panel {
@@ -29,14 +29,14 @@
 .collections-search {
 	display: grid;
 	gap: 0.4rem;
-	color: #9fbdd6;
+	color: #adc4df;
 	font-size: 0.92rem;
 }
 
 .collections-search input {
 	border: 1px solid rgba(118, 158, 185, 0.35);
 	background: rgba(9, 23, 33, 0.82);
-	color: #eaf5ff;
+	color: #e9f1ff;
 	border-radius: 0.6rem;
 	padding: 0.55rem 0.7rem;
 }
@@ -57,12 +57,12 @@
 }
 
 .collections-summary-card span {
-	color: #9fbdd6;
+	color: #adc4df;
 	font-size: 0.82rem;
 }
 
 .collections-summary-card strong {
-	color: #eaf5ff;
+	color: #e9f1ff;
 	font-size: 1.15rem;
 }
 
@@ -127,7 +127,7 @@
 
 .collection-header-copy p {
 	margin: 0;
-	color: #9fbdd6;
+	color: #adc4df;
 	font-size: 0.92rem;
 	line-height: 1.4;
 }
@@ -163,12 +163,12 @@
 	justify-content: space-between;
 	gap: 0.75rem;
 	align-items: baseline;
-	color: #9fbdd6;
+	color: #adc4df;
 	font-size: 0.9rem;
 }
 
 .collection-progress-meta strong {
-	color: #eaf5ff;
+	color: #e9f1ff;
 	font-size: 0.95rem;
 }
 
@@ -191,7 +191,7 @@
 	justify-content: space-between;
 	gap: 0.75rem;
 	font-size: 0.85rem;
-	color: #a7c0d7;
+	color: #adc4df;
 }
 
 .collections-loading,
@@ -201,7 +201,7 @@
 	background: rgba(9, 23, 33, 0.72);
 	border-radius: 0.85rem;
 	padding: 1rem;
-	color: #eaf5ff;
+	color: #e9f1ff;
 }
 
 @media (max-width: 900px) {

@@ -11,7 +11,7 @@
 
 .bank-header p {
 	margin-top: 0.4rem;
-	color: #a7c0d7;
+	color: #adc4df;
 }
 
 .bank-balance-grid {
@@ -38,7 +38,7 @@
 	margin: 0.5rem 0 0;
 	font-size: 1.35rem;
 	font-weight: 700;
-	color: #8ee38c;
+	color: #e9f1ff;
 }
 
 .bank-purse-card {
@@ -53,13 +53,14 @@
 
 .bank-actions label {
 	font-size: 0.92rem;
-	color: #9fbdd6;
+	color: #e9f1ff;
+	
 }
 
 .bank-actions input {
 	border: 1px solid rgba(118, 158, 185, 0.35);
 	background: rgba(9, 23, 33, 0.82);
-	color: #eaf5ff;
+	color: #e9f1ff;
 	border-radius: 0.6rem;
 	padding: 0.55rem 0.7rem;
 }
@@ -73,7 +74,7 @@
 .bank-actions-row button {
 	border: 1px solid rgba(118, 158, 185, 0.4);
 	background: rgba(8, 17, 25, 0.86);
-	color: #eaf5ff;
+	color: #e9f1ff;
 	border-radius: 0.55rem;
 	padding: 0.5rem 0.75rem;
 	cursor: pointer;

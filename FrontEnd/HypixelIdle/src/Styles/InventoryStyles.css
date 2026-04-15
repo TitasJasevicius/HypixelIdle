@@ -11,7 +11,7 @@
 .inventory-header h3 {
   margin: 0;
   font-size: 1rem;
-  color: #dbe9f6;
+  color: #e9f1ff;
 }
 
 .inventory-header p {
@@ -44,7 +44,7 @@
   border: 1px solid rgba(174, 198, 217, 0.45);
   border-radius: 0.35rem;
   background: linear-gradient(180deg, #314251 0%, #273845 100%);
-  color: #eaf2fc;
+  color: #e9f1ff;
   position: relative;
   display: block;
   box-sizing: border-box;
@@ -79,7 +79,7 @@
   top: 0.12rem;
   left: 0.2rem;
   font-size: 0.6rem;
-  color: #b5c9dd;
+  color: #adc4df;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   pointer-events: none;
 }
@@ -90,7 +90,7 @@
   bottom: 0.1rem;
   font-size: 0.82rem;
   font-weight: 700;
-  color: #f2fcff;
+  color: #e9f1ff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
   pointer-events: none;
 }
@@ -113,7 +113,7 @@
 }
 
 .inventory-slot-active {
-  border-color: #8dd7ff;
+  border-color: #adc4df;
   box-shadow: 0 0 0 2px rgba(141, 215, 255, 0.2) inset;
 }
 
@@ -146,7 +146,7 @@
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.1;
-  color: #d4ebff;
+  color: #e9f1ff;
   font-weight: 800;
 }
 
@@ -170,7 +170,7 @@
 }
 
 .item-info-stat-name {
-  color: #c9d9f1;
+  color: #e9f1ff;
   font-weight: 700;
 }
 
@@ -212,7 +212,7 @@
   padding: 0.95rem;
   border: 1px solid rgba(120, 200, 255, 0.22);
   border-radius: 0.8rem;
-  background: rgba(8, 17, 25, 0.78);
+  background: rgba(8, 17, 25, 0.86);
 }
 
 .player-equipment-grid {

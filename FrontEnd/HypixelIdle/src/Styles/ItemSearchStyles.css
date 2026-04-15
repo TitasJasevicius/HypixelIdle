@@ -56,7 +56,7 @@
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
   padding: 1rem;
   font-family: var(--main-text-font);
-  color: #eaf5ff;
+  color: #e9f1ff;
 }
 
 .item-search-header {
@@ -69,14 +69,14 @@
 .item-search-header h2 {
   margin: 0;
   font: 700 1.25rem/1.2 var(--main-text-font);
-  color: #eaf5ff;
+  color: #e9f1ff;
 }
 
 .item-search-close {
   border: 1px solid rgba(141, 215, 255, 0.36);
   border-radius: 0.65rem;
   background: linear-gradient(180deg, #374d5f 0%, #243540 100%);
-  color: #eaf5ff;
+  color: #e9f1ff;
   font: 600 0.92rem/1 var(--main-text-font);
   padding: 0.55rem 0.95rem;
   cursor: pointer;
@@ -92,7 +92,7 @@
   border: 1px solid rgba(141, 215, 255, 0.32);
   border-radius: 0.7rem;
   background: rgba(9, 20, 30, 0.88);
-  color: #eaf5ff;
+  color: #e9f1ff;
   font: 500 0.95rem/1.25 var(--main-text-font);
   padding: 0.7rem 0.85rem;
   outline: none;
@@ -116,19 +116,40 @@
 }
 
 .item-search-select-wrap span {
-  color: #9fc3df;
+  color: #adc4df;
   font: 600 0.78rem/1 var(--main-text-font);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .item-search-select-wrap select {
-  border: 1px solid rgba(141, 215, 255, 0.32);
+  border: 1px solid rgba(123, 185, 228, 0.55);
   border-radius: 0.6rem;
-  background: rgba(10, 22, 32, 0.9);
-  color: #eaf5ff;
+  background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
+  color: #e9f1ff;
   font: 500 0.9rem/1.2 var(--main-text-font);
   padding: 0.5rem 0.55rem;
+}
+
+#item-search-sort-by,
+#item-search-category-filter {
+  background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
+  color: #e9f1ff;
+  border: 1px solid rgba(123, 185, 228, 0.55);
+  color-scheme: dark;
+}
+
+#item-search-sort-by option,
+#item-search-category-filter option {
+  background: #10202c;
+  color: #e9f1ff;
+}
+
+#item-search-sort-by:focus,
+#item-search-category-filter:focus {
+  outline: none;
+  border-color: rgba(141, 215, 255, 0.75);
+  box-shadow: 0 0 0 2px rgba(141, 215, 255, 0.18);
 }
 
 .item-search-select-wrap select,
@@ -212,13 +233,13 @@
 
 .item-search-card-content h3 {
   margin: 0;
-  color: #eaf5ff;
+  color: #e9f1ff;
   font: 700 0.9rem/1.15 var(--main-text-font);
 }
 
 .item-search-card-content p {
   margin: 0.12rem 0 0;
-  color: #9fc3df;
+  color: #adc4df;
   font: 500 0.76rem/1.15 var(--main-text-font);
 }
 
@@ -230,7 +251,7 @@
 }
 
 .item-search-card-meta span {
-  color: #eaf5ff;
+  color: #e9f1ff;
   font: 600 0.72rem/1.1 var(--main-text-font);
 }
 
@@ -254,13 +275,13 @@
 
 .item-search-preview-header h3 {
   margin: 0;
-  color: #eaf5ff;
+  color: #e9f1ff;
   font: 700 1rem/1.15 var(--main-text-font);
 }
 
 .item-search-preview-header p {
   margin: 0.15rem 0 0;
-  color: #9fc3df;
+  color: #adc4df;
   font: 500 0.8rem/1.15 var(--main-text-font);
 }
 
@@ -290,7 +311,7 @@
 
 .item-search-preview-section h4 {
   margin: 0;
-  color: #eaf5ff;
+  color: #e9f1ff;
   font: 700 0.88rem/1.2 var(--main-text-font);
   letter-spacing: 0.02em;
 }
@@ -315,11 +336,11 @@
 }
 
 .item-search-preview-list span {
-  color: #9fc3df;
+  color: #adc4df;
 }
 
 .item-search-preview-list strong {
-  color: #eaf5ff;
+  color: #e9f1ff;
 }
 
 .item-search-mob-source-topline {
@@ -331,12 +352,12 @@
 }
 
 .item-search-mob-source-name {
-  color: #eaf5ff;
+  color: #e9f1ff;
   font-weight: 600;
 }
 
 .item-search-mob-source-location {
-  color: #9fc3df;
+  color: #adc4df;
   font: 500 0.76rem/1.1 var(--main-text-font);
 }
 
@@ -351,12 +372,12 @@
 
 .item-search-recipe-header strong {
   display: block;
-  color: #eaf5ff;
+  color: #e9f1ff;
 }
 
 .item-search-recipe-header p {
   margin: 0.1rem 0 0;
-  color: #9fc3df;
+  color: #adc4df;
   font: 500 0.78rem/1.1 var(--main-text-font);
 }
 
@@ -390,18 +411,18 @@
 }
 
 .item-search-recipe-slot span {
-  color: #eef6ff;
+  color: #e9f1ff;
   font: 600 0.7rem/1.05 var(--main-text-font);
 }
 
 .item-search-recipe-slot small {
-  color: #9fc3df;
+  color: #adc4df;
   font: 600 0.68rem/1 var(--main-text-font);
 }
 
 .item-search-empty {
   margin: 0;
-  color: #9fc3df;
+  color: #adc4df;
 }
 
 .item-search-empty-error {

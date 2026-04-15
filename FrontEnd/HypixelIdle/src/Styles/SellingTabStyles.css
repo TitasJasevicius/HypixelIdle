@@ -2,7 +2,7 @@
 	padding: 0.85rem;
 	border: 1px solid rgba(120, 200, 255, 0.22);
 	border-radius: 0.8rem;
-	background: rgba(8, 17, 25, 0.78);
+	background: rgba(8, 17, 25, 0.86);
 	display: grid;
 	gap: 0.65rem;
 }
@@ -10,7 +10,7 @@
 .selling-title {
 	margin: 0;
 	font-size: 1rem;
-	color: #dff1ff;
+	color: #e9f1ff;
 }
 
 .selling-error {
@@ -52,7 +52,7 @@
 
 .selling-slot-placeholder {
 	font-size: 0.68rem;
-	color: #a8c0d8;
+	color: #adc4df;
 }
 
 .selling-slot-qty {
@@ -61,7 +61,7 @@
 	bottom: 0.18rem;
 	font-size: 0.72rem;
 	font-weight: 700;
-	color: #dff1ff;
+	color: #e9f1ff;
 	text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
 }
 
@@ -75,13 +75,13 @@
 .selling-slot-meta p {
 	margin: 0;
 	font-size: 0.84rem;
-	color: #a8c0d8;
+	color: #adc4df;
 }
 
 .selling-confirm-button {
 	border: 1px solid rgba(142, 227, 140, 0.6);
 	background: rgba(28, 62, 39, 0.9);
-	color: #ddffd8;
+	color: #e9f1ff;
 	padding: 0.42rem 0.65rem;
 	border-radius: 0.5rem;
 	cursor: pointer;
@@ -97,7 +97,7 @@
 .selling-empty {
 	margin: 0;
 	font-size: 0.82rem;
-	color: #a8c0d8;
+	color: #adc4df;
 }
 
 .selling-inventory-grid {

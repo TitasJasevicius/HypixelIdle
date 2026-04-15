@@ -5,12 +5,12 @@
 
 .player-skin-render-header h1 {
   margin: 0;
-  color: #dbe9f6;
+  color: #e9f1ff;
 }
 
 .player-skin-render-header p {
   margin: 0.35rem 0 0;
-  color: #9cb8d1;
+  color: #e9f1ff;
 }
 
 .player-skin-render-form {
@@ -23,7 +23,7 @@
 .player-skin-render-form label {
   width: 100%;
   font-size: 0.9rem;
-  color: #b6cbe0;
+  color: #adc4df;
 }
 
 .player-skin-render-form input {
@@ -31,15 +31,15 @@
   flex: 1;
   border: 1px solid rgba(175, 204, 228, 0.35);
   background: rgba(10, 24, 35, 0.55);
-  color: #eaf2fc;
+  color: #e9f1ff;
   border-radius: 0.5rem;
   padding: 0.5rem 0.65rem;
 }
 
 .player-skin-render-form button {
   border: 1px solid rgba(123, 185, 228, 0.55);
-  background: linear-gradient(180deg, #265a7a 0%, #1b425b 100%);
-  color: #eaf6ff;
+	background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
+  color: #e9f1ff;
   border-radius: 0.5rem;
   padding: 0.5rem 0.9rem;
   cursor: pointer;

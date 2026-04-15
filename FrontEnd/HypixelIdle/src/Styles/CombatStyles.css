@@ -18,7 +18,7 @@
 	padding: 1rem;
 	border: 1px solid rgba(120, 200, 255, 0.22);
 	border-radius: 0.9rem;
-	background: rgba(8, 17, 25, 0.78);
+	background: rgba(8, 17, 25, 0.86);
 }
 
 .combat-header h1 {
@@ -28,7 +28,7 @@
 
 .combat-header p {
 	margin: 0.35rem 0 0;
-	color: #bcd5f0;
+	color: #adc4df;
 }
 
 .combat-battle-modes,
@@ -45,7 +45,7 @@
 	border: 1px solid rgba(141, 215, 255, 0.35);
 	border-radius: 0.6rem;
 	background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
-	color: #eaf4ff;
+	color: #e9f1ff;
 	padding: 0.65rem 0.9rem;
 	font: inherit;
 	cursor: pointer;
@@ -63,7 +63,8 @@
 }
 
 .combat-action-button.secondary {
-	background: linear-gradient(180deg, #3b4c5d 0%, #24303c 100%);
+	border: 1px solid rgba(123, 185, 228, 0.55);
+	background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
 }
 
 .combat-status,
@@ -107,7 +108,7 @@
 
 .combat-mob-selector p {
 	margin: 0;
-	color: #b8cce2;
+	color: #adc4df;
 }
 
 .combat-mob-card {
@@ -119,7 +120,7 @@
 	border: 1px solid rgba(141, 215, 255, 0.24);
 	border-radius: 0.8rem;
 	background: rgba(9, 20, 29, 0.8);
-	color: #eff8ff;
+	color: #e9f1ff;
 	cursor: pointer;
 }
 
@@ -164,14 +165,14 @@
 .combat-creature-card p,
 .combat-loot-item p {
 	margin: 0;
-	color: #b8cce2;
+	color: #adc4df;
 }
 
 .combat-arena {
 	padding: 1rem;
 	border: 1px solid rgba(120, 200, 255, 0.22);
 	border-radius: 0.9rem;
-	background: rgba(8, 17, 25, 0.78);
+	background: rgba(8, 17, 25, 0.86);
 	display: grid;
 	gap: 1rem;
 }
@@ -205,7 +206,7 @@
 .combat-stat-grid span {
 	display: block;
 	font-size: 0.8rem;
-	color: #adc4da;
+	color: #adc4df;
 	margin-bottom: 0.2rem;
 }
 
@@ -217,7 +218,7 @@
 	display: block;
 	margin-top: 0.25rem;
 	font-size: 0.78rem;
-	color: #9fc3df;
+	color: #adc4df;
 }
 
 .combat-hp-shell {
@@ -262,12 +263,12 @@
 	padding: 0.7rem;
 	border-radius: 0.7rem;
 	border: 1px solid rgba(141, 215, 255, 0.2);
-	background: rgba(8, 17, 25, 0.78);
+	background: rgba(8, 17, 25, 0.86);
 }
 
 .combat-ranged-slot-card span {
 	font-size: 0.78rem;
-	color: #adc4da;
+	color: #adc4df;
 }
 
 .combat-ranged-slot-card strong {
@@ -275,7 +276,7 @@
 }
 
 .combat-ranged-slot-card small {
-	color: #9fc3df;
+	color: #adc4df;
 	font-size: 0.8rem;
 }
 
@@ -425,7 +426,7 @@
 .combat-mob-location-group h4 {
 	margin: 0 0 0.5rem;
 	font-size: 0.95rem;
-	color: #c7ddf2;
+	color: #e9f1ff;
 }
 
 .combat-location-toggle {
@@ -450,7 +451,7 @@
 
 .combat-location-toggle span {
 	font-size: 0.82rem;
-	color: #9fc3df;
+	color: #adc4df;
 }
 
 .combat-modal-drop-item {
@@ -471,12 +472,12 @@
 
 .combat-modal-drop-meta p {
 	margin: 0;
-	color: #b8cce2;
+	color: #adc4df;
 }
 
 .combat-modal-drop-chance {
 	font-weight: 600;
-	color: #8dd7ff;
+	color: #e9f1ff;
 }
 
 @keyframes combatLootReveal {
