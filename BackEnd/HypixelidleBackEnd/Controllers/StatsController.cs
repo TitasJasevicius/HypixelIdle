@@ -2,29 +2,25 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
+using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //dont forget to auth and authorize later
-    //[Authorize]
+    [Authorize]
     public class StatsController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
-
-        
-
-       
-
         public StatsController(HypixelIdleContext context)
         {
             _context = context;
         }
 
         [HttpGet]
-        [Route("GetStats")]
         [AllowAnonymous]
+        [Route("GetStats")]
         public async Task<ActionResult<List<Stat>>> GetStats()
         {
             var stats = await _context.Stats.ToListAsync();
@@ -41,6 +37,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddStat")]
         public async Task<ActionResult<Stat>> AddStat(Stat stat)
         {
+
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Stats.Add(stat);
             await _context.SaveChangesAsync();
 
@@ -48,8 +50,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetEntityStats")]
         [AllowAnonymous]
+        [Route("GetEntityStats")]
         public async Task<ActionResult<List<EntityStatResponse>>> GetEntityStats(int entityId)
         {
             var entityStats = await _context.Entitystats
@@ -79,6 +81,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddEntityStat")]
         public async Task<ActionResult<Entitystat>> AddEntityStat(Entitystat entityStat)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Entitystats.Add(entityStat);
             await _context.SaveChangesAsync();
 
@@ -86,6 +93,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("InitializePlayerStats")]
         public async Task<ActionResult> InitializePlayerStats(int playerId)
         {
@@ -113,6 +121,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("InitializePlayerHealth")]
         public async Task<ActionResult> InitializePlayerHealth(int playerId, int defaultHealth)
         {
@@ -143,8 +152,8 @@ namespace HypixelidleBackEnd.Controllers
 
 
         [HttpGet]
-        [Route("GetItemStats")]
         [AllowAnonymous]
+        [Route("GetItemStats")]
         public async Task<ActionResult<List<EntityStatResponse>>> GetItemStats(int itemId)
         {
             var itemStats = await _context.Entitystats
@@ -174,6 +183,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UpdateStat")]
         public async Task<ActionResult> UpdateStat(int statId, Entitystat newStat)
         {
+
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             var entityStats = await _context.Entitystats.FindAsync(statId);
 
             if (entityStats == null)
@@ -189,6 +204,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetPlayerStats")]
         public async Task<ActionResult<List<EntityStatResponse>>> GetPlayerStats(int playerId)
         {
@@ -216,8 +232,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetMobStats")]
         [AllowAnonymous]
+        [Route("GetMobStats")]
         public async Task<ActionResult<List<EntityStatResponse>>> GetMobStats(int mobId)
         {
             var mobStats = await _context.Entitystats
@@ -247,6 +263,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("DeletePlayerStats")]
         public async Task<ActionResult> DeletePlayerStats(int playerId)
         {
+
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             var playerStats = await _context.Entitystats.Where(s => s.FkPlayeridPlayer == playerId).ToListAsync();
 
             if (playerStats.Count == 0)

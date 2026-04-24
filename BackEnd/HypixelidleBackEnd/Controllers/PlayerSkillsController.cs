@@ -3,13 +3,13 @@ using HypixelidleBackEnd.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //do later
-    //[Authorize]
+    [Authorize]
     public class PlayerSkillsController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -27,6 +27,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetPlayerSkills")]
         public async Task<ActionResult<List<Playerskill>>> GetPlayerSkills(int playerId)
         {
@@ -41,6 +42,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetPlayerSkill")]
         public async Task<ActionResult<Playerskill>> GetPlayerSkill(int playerId, int skillId)
         {
@@ -55,12 +57,16 @@ namespace HypixelidleBackEnd.Controllers
             return Ok(playerSkill);
         }
 
-        
-
         [HttpPut]
         [Route("AddOrUpdatePlayerSkill")]
         public async Task<ActionResult> AddOrUpdatePlayerSkill(Playerskill playerSkill)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerSkill.FkPlayeridPlayer))
+            {
+                return Unauthorized();
+            }
+
             var existingPlayerSkill = await _context.Playerskills
                 .FirstOrDefaultAsync(ps => ps.FkPlayeridPlayer == playerSkill.FkPlayeridPlayer && ps.FkSkillsidSkills == playerSkill.FkSkillsidSkills);
 
@@ -87,6 +93,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("GrantSkillXp")]
         public async Task<ActionResult<Playerskill>> GrantSkillXp([FromBody] GrantSkillXpRequest request)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.SkillId <= 0)
             {
                 return BadRequest("PlayerId and SkillId must be greater than zero.");
@@ -150,6 +162,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("InitializePlayerSkills")]
         public async Task<ActionResult> InitializePlayerSkills(int playerId)
         {
@@ -199,6 +212,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("DeletePlayerSkills")]
         public async Task<ActionResult> DeletePlayerSkills(int playerId)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }
+
             var playerSkills = await _context.Playerskills.Where(ps => ps.FkPlayeridPlayer == playerId).ToListAsync();
 
             if (playerSkills == null || playerSkills.Count == 0)

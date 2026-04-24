@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //do later
-    //[Authorize]
+    [Authorize]
     public class PurseController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -20,6 +20,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetPurse")]
         public async Task<ActionResult<Purse>> GetPurse(int playerId)
         {
@@ -46,6 +47,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddPurse")]
         public async Task<ActionResult<Purse>> AddPurse(Purse purse)
         {
+
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Purses.Add(purse);
             await _context.SaveChangesAsync();
 
@@ -56,6 +63,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UpdatePurse")]
         public async Task<ActionResult> UpdatePurse(int playerId, int amountBalance, int amountBits)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }
+
             var purse = await _context.Purses.FirstOrDefaultAsync(p => p.FkPlayeridPlayer == playerId);
 
             if (purse == null)
@@ -85,6 +98,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("InitializePlayerPurse")]
         public async Task<ActionResult> InitializePlayerPurse(int playerId)
         {
@@ -111,6 +125,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("DeletePurse")]
         public async Task<ActionResult> DeletePurse(int playerId)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }    
+
             var purse = await _context.Purses.FirstOrDefaultAsync(p => p.FkPlayeridPlayer == playerId);
             
             if (purse == null)

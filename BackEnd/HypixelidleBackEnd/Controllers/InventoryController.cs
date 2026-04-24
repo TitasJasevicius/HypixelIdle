@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
@@ -21,7 +22,6 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        //update auth later
         [AllowAnonymous]
         [Route("GetInventory")]
         public async Task<ActionResult<IEnumerable<InventorySlotResponse>>> GetInventorySlots(int playerId)
@@ -52,7 +52,7 @@ namespace HypixelidleBackEnd.Controllers
             return Ok(inventorySlots);
         }
 
-        //Pretty much useless, only used to test in the initial phase of dev
+        /*//Pretty much useless, only used to test in the initial phase of dev
         [HttpPost]
         //update auth later
         [AllowAnonymous]
@@ -70,10 +70,9 @@ namespace HypixelidleBackEnd.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetInventorySlots), new { playerId = newSlot.FkPlayeridPlayer }, newSlot);
-        }
+        }*/
 
         [HttpPost]
-        //update auth later
         [AllowAnonymous]
         [Route("CreateInitialInventory")]
         public async Task<ActionResult> CreateInitialInventory(int playerId)
@@ -96,14 +95,17 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
-        //update auth later
-        [AllowAnonymous]
         [Route("AddItemToInventory")]
         public async Task<ActionResult> AddItemToInventory([FromBody] AddItemToInventoryRequest request)
         {
             if (request.PlayerId <= 0 || request.ItemId <= 0 || request.Quantity <= 0)
             {
                 return BadRequest("PlayerId, ItemId and Quantity must be greater than zero.");
+            }
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
             }
 
             var item = await _context.Items.FirstOrDefaultAsync(i => i.IdItem == request.ItemId);
@@ -175,14 +177,17 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
-        //update auth later
-        [AllowAnonymous]
         [Route("RemoveItemFromInventory")]
         public async Task<ActionResult> RemoveItemFromInventory([FromBody] RemoveItemFromInventoryRequest request)
         {
             if (request.PlayerId <= 0 || request.ItemId <= 0 || request.Quantity <= 0)
             {
                 return BadRequest("PlayerId, ItemId and Quantity must be greater than zero.");
+            }
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
             }
 
             var item = await _context.Items.FirstOrDefaultAsync(i => i.IdItem == request.ItemId);
@@ -231,14 +236,17 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
-        //update auth later
-        [AllowAnonymous]
         [Route("SellInventoryItem")]
         public async Task<ActionResult<SellInventoryItemResponse>> SellInventoryItem([FromBody] SellInventoryItemRequest request)
         {
             if (request.PlayerId <= 0 || request.InventorySlotId <= 0 || request.Quantity <= 0)
             {
                 return BadRequest("PlayerId, InventorySlotId and Quantity must be greater than zero.");
+            }
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
             }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -313,8 +321,6 @@ namespace HypixelidleBackEnd.Controllers
         }
         
         [HttpPut]
-        //update auth later
-        [AllowAnonymous]
         [Route("UpdateInventorySlot")]
         public async Task<ActionResult> UpdateInventorySlot(int inventorySlotId, int quantity)
         {
@@ -323,6 +329,11 @@ namespace HypixelidleBackEnd.Controllers
             if (inventorySlot == null)
             {
                 return NotFound();
+            }
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, inventorySlot.FkPlayeridPlayer))
+            {
+                return Unauthorized();
             }
 
             if (quantity < 0)
@@ -343,11 +354,15 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpDelete]
-        //update auth later
-        [AllowAnonymous]
+
         [Route("DeleteInventorySlots")]
         public async Task<ActionResult> DeleteInventorySlots(int playerId)
         {
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }
+
             var inventorySlots = await _context.Playerinventoryslots.Where(slot => slot.FkPlayeridPlayer == playerId).ToListAsync();
 
             if (inventorySlots.Count == 0)
@@ -363,7 +378,6 @@ namespace HypixelidleBackEnd.Controllers
 
         
 
-        //Helper methods / dto
 
         public sealed class AddItemToInventoryRequest
         {

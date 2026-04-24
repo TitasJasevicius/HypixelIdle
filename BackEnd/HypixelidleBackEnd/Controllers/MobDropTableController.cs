@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //do later
-    //[Authorize]
+    [Authorize]
     public class MobDropTableController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -20,6 +20,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetMobDropTables")]
         public async Task<ActionResult<List<Mobdroptable>>> GetMobDropTables()
         {
@@ -33,7 +34,8 @@ namespace HypixelidleBackEnd.Controllers
             return Ok(mobDropTables);
         }
 
-        [HttpGet]
+        [HttpGet]  
+        [AllowAnonymous]
         [Route("GetMobDropTable")]
         public async Task<ActionResult<Mobdroptable>> GetMobDropTable(int id)
         {
@@ -51,6 +53,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddMobDropTable")]
         public async Task<ActionResult<Mobdroptable>> AddMobDropTable(Mobdroptable mobDropTable)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Mobdroptables.Add(mobDropTable);
             await _context.SaveChangesAsync();
 
@@ -61,6 +68,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UpdateMobDropTable")]
         public async Task<ActionResult> UpdateMobDropTable(int mobDropTableId, Mobdroptable updatedMobDropTable)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             var mobDropTable = await _context.Mobdroptables.FindAsync(mobDropTableId);
 
             if (mobDropTable == null)
@@ -78,6 +90,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("DeleteMobDropTable")]
         public async Task<ActionResult> DeleteMobDropTable(int id)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+            
             var mobDropTable = await _context.Mobdroptables.FindAsync(id);
 
             if (mobDropTable == null)

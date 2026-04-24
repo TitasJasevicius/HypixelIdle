@@ -3,13 +3,15 @@ using HypixelidleBackEnd.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
+
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //do later
-    //[Authorize]
+    [Authorize]
     public class NodeController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -20,6 +22,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetNodes")]
         public async Task<ActionResult<List<NodeResponse>>> GetNodes(int? playerId = null)
         {
@@ -65,6 +68,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetNode")]
         public async Task<ActionResult<Node>> GetNode(int id)
         {
@@ -82,6 +86,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddNode")]
         public async Task<ActionResult<Node>> AddNode(Node node)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Nodes.Add(node);
             await _context.SaveChangesAsync();
 
@@ -92,6 +101,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UnlockNode")]
         public async Task<ActionResult> UnlockNode([FromBody] UnlockNodeRequest request)
         {
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.NodeId <= 0)
             {
                 return BadRequest();
@@ -143,6 +157,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("InitializeDefaultNodesForPlayer")]
         public async Task<ActionResult> InitializeDefaultNodesForPlayer(int playerId)
         {

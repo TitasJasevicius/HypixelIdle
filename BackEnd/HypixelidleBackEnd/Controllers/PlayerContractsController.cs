@@ -2,12 +2,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
+using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class PlayerContractsController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -18,8 +20,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetPlayerContracts")]
         [AllowAnonymous]
+        [Route("GetPlayerContracts")]
         public async Task<ActionResult<List<PlayerContractSummaryResponse>>> GetPlayerContracts(int playerId)
         {
             if (playerId <= 0)
@@ -50,9 +52,14 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("AssignContract")]
-        [AllowAnonymous]
         public async Task<ActionResult<PlayerContractSummaryResponse>> AssignContract([FromBody] AssignContractRequest request)
         {
+
+            if(!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.ContractId <= 0)
             {
                 return BadRequest("Valid PlayerId and ContractId are required.");
@@ -130,9 +137,14 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("AddProgress")]
-        [AllowAnonymous]
         public async Task<ActionResult<PlayerContractSummaryResponse>> AddProgress([FromBody] AddPlayerContractProgressRequest request)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.ContractId <= 0)
             {
                 return BadRequest("Valid PlayerId and ContractId are required.");
@@ -167,9 +179,14 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("AddMobKillProgress")]
-        [AllowAnonymous]
         public async Task<ActionResult<List<PlayerContractSummaryResponse>>> AddMobKillProgress([FromBody] AddMobKillProgressRequest request)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.MobId <= 0)
             {
                 return BadRequest("Valid PlayerId and MobId are required.");
@@ -211,9 +228,14 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("AddNodeMineProgress")]
-        [AllowAnonymous]
         public async Task<ActionResult<List<PlayerContractSummaryResponse>>> AddNodeMineProgress([FromBody] AddNodeMineProgressRequest request)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.NodeId <= 0)
             {
                 return BadRequest("Valid PlayerId and NodeId are required.");
@@ -255,9 +277,14 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("CompleteContract")]
-        [AllowAnonymous]
         public async Task<ActionResult<CompleteContractResponse>> CompleteContract([FromBody] CompleteContractRequest request)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.ContractId <= 0)
             {
                 return BadRequest("Valid PlayerId and ContractId are required.");
@@ -446,9 +473,14 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("CancelContract")]
-        [AllowAnonymous]
         public async Task<ActionResult<CancelContractResponse>> CancelContract([FromBody] CancelContractRequest request)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.ContractId <= 0)
             {
                 return BadRequest("Valid PlayerId and ContractId are required.");

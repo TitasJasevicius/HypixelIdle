@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
@@ -24,6 +25,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetPlayer")]
         public async Task<ActionResult<PlayerResponse>> GetPlayer(string username, string password)
         {
@@ -41,8 +43,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
-        [Route("CreatePlayer")]
         [AllowAnonymous]
+        [Route("CreatePlayer")]
         public async Task<ActionResult<PlayerResponse>> CreatePlayer(Player player)
         {
             string password = _hashingService.HashPassword(player.Password);
@@ -69,6 +71,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("DeletePlayer")]
         public async Task<ActionResult> DeletePlayer(int playerId)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }
+
             var player = await _context.Players.FindAsync(playerId);
 
             if (player == null)
@@ -86,6 +94,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UpdatePlayer")]
         public async Task<ActionResult> UpdatePlayer(int playerId, Player updatedPlayer)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }
+
             if (playerId != updatedPlayer.IdPlayer)
             {
                 return BadRequest();
@@ -134,9 +148,9 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetLeaderboard")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<LeaderboardEntryResponse>>> GetLeaderboard(string sortBy = "level", int take = 50, int? itemId = null)
+        [Route("GetLeaderboard")]
+        public async Task<ActionResult<List<LeaderboardEntryResponse>>> GetLeaderboard(string sortBy = "level", int take = 50, int? itemId = null, int? skillId = null)
         {
             var normalizedSortBy = (sortBy ?? "level").Trim().ToLowerInvariant();
             var safeTake = Math.Clamp(take, 1, 200);
@@ -174,6 +188,36 @@ namespace HypixelidleBackEnd.Controllers
                     Balance = group.Sum(purse => purse.Balance),
                 })
                 .ToDictionaryAsync(row => row.PlayerId, row => row.Balance);
+
+            Dictionary<int, int> skillLevelByPlayerId;
+
+            if (skillId.HasValue && skillId.Value > 0)
+            {
+                skillLevelByPlayerId = await _context.Playerskills
+                    .AsNoTracking()
+                    .Where(playerSkill =>
+                        playerIds.Contains(playerSkill.FkPlayeridPlayer)
+                        && playerSkill.FkSkillsidSkills == skillId.Value)
+                    .Select(playerSkill => new
+                    {
+                        PlayerId = playerSkill.FkPlayeridPlayer,
+                        SkillLevel = playerSkill.Level,
+                    })
+                    .ToDictionaryAsync(row => row.PlayerId, row => row.SkillLevel);
+            }
+            else
+            {
+                skillLevelByPlayerId = await _context.Playerskills
+                    .AsNoTracking()
+                    .Where(playerSkill => playerIds.Contains(playerSkill.FkPlayeridPlayer))
+                    .GroupBy(playerSkill => playerSkill.FkPlayeridPlayer)
+                    .Select(group => new
+                    {
+                        PlayerId = group.Key,
+                        SkillLevel = group.Sum(playerSkill => playerSkill.Level),
+                    })
+                    .ToDictionaryAsync(row => row.PlayerId, row => row.SkillLevel);
+            }
 
             Dictionary<int, int> totalCollectedByPlayerId;
 
@@ -217,12 +261,17 @@ namespace HypixelidleBackEnd.Controllers
                     SkyblockLevel = player.SkyblockLevel,
                     PurseBalance = purseByPlayerId.TryGetValue(player.IdPlayer, out var purseBalance) ? purseBalance : 0,
                     TotalCollected = totalCollectedByPlayerId.TryGetValue(player.IdPlayer, out var totalCollected) ? totalCollected : 0,
+                    SkillLevel = skillLevelByPlayerId.TryGetValue(player.IdPlayer, out var skillLevel) ? skillLevel : 0,
                 });
 
             IEnumerable<LeaderboardEntryResponse> orderedEntries = normalizedSortBy switch
             {
                 "collections" => entries
                     .OrderByDescending(entry => entry.TotalCollected)
+                    .ThenByDescending(entry => entry.SkyblockLevel)
+                    .ThenBy(entry => entry.Username),
+                "skills" => entries
+                    .OrderByDescending(entry => entry.SkillLevel)
                     .ThenByDescending(entry => entry.SkyblockLevel)
                     .ThenBy(entry => entry.Username),
                 "coins" => entries
@@ -259,6 +308,8 @@ namespace HypixelidleBackEnd.Controllers
             public float PurseBalance { get; set; }
 
             public int TotalCollected { get; set; }
+
+            public int SkillLevel { get; set; }
         }
 
         public sealed class PlayerResponse

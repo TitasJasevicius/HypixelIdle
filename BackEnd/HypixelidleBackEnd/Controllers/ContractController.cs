@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //dont forget to auth and authorize later
-    //[Authorize]
+    [Authorize]
     public class ContractController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -20,8 +20,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetContracts")]
         [AllowAnonymous]
+        [Route("GetContracts")]
         public async Task<ActionResult<List<Contract>>> GetContracts()
         {
             var contracts = await _context.Contracts
@@ -41,8 +41,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetContractsWithRewards")]
         [AllowAnonymous]
+        [Route("GetContractsWithRewards")]
         public async Task<ActionResult<List<ContractDefinitionResponse>>> GetContractsWithRewards(string? difficulty)
         {
             var query = _context.Contracts
@@ -100,8 +100,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetContract")]
         [AllowAnonymous]
+        [Route("GetContract")]
         public async Task<ActionResult<Contract>> GetContract(int id)
         {
             var contract = await _context.Contracts.FindAsync(id);
@@ -118,6 +118,10 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddContract")]
         public async Task<ActionResult<Contract>> AddContract(Contract contract)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
             _context.Contracts.Add(contract);
             await _context.SaveChangesAsync();
 
@@ -128,6 +132,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("DeleteContract")]
         public async Task<ActionResult> DeleteContract(int id)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             var contract = await _context.Contracts.FindAsync(id);
 
             if (contract == null)

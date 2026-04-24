@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //dont forget to auth and authorize later
-    //[Authorize]
+    [Authorize]
     public class CollectionController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -20,8 +20,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetCollections")]
         [AllowAnonymous]
+        [Route("GetCollections")]
         public async Task<ActionResult<List<Collection>>> GetCollections()
         {
             var collections = await _context.Collections.ToListAsync();
@@ -35,8 +35,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetCollection")]
         [AllowAnonymous]
+        [Route("GetCollection")]
         public async Task<ActionResult<Collection>> GetCollection(string name)
         {
             var collection = await _context.Collections.FirstOrDefaultAsync(c => c.Name == name);
@@ -53,6 +53,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddCollection")]
         public async Task<ActionResult<Collection>> AddCollection(Collection collection)
         {
+
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Collections.Add(collection);
             await _context.SaveChangesAsync();
 
@@ -61,8 +67,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetCollectionOverview")]
         [AllowAnonymous]
+        [Route("GetCollectionOverview")]
         public async Task<ActionResult<List<CollectionOverviewResponse>>> GetCollectionOverview(int? playerId = null)
         {
             var collections = await _context.Collections
@@ -141,6 +147,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetPlayerItemCollection")]
         public async Task<ActionResult<Playercollection>> GetPlayerItemCollection(int playerId, int itemId)
         {

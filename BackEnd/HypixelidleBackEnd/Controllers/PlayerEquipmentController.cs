@@ -4,6 +4,7 @@ using HypixelidleBackEnd.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
@@ -30,8 +31,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetEquipmentTypes")]
         [AllowAnonymous]
+        [Route("GetEquipmentTypes")]
         public async Task<ActionResult<List<Equipmenttype>>> GetEquipmentTypes()
         {
             var equipmentTypes = await _context.Equipmenttypes
@@ -43,8 +44,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetPlayerEquipment")]
         [AllowAnonymous]
+        [Route("GetPlayerEquipment")]
         public async Task<ActionResult<List<PlayerEquipmentResponse>>> GetPlayerEquipment(int playerId)
         {
             var playerEquipment = await _context.Playerequipments
@@ -85,6 +86,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("EquipPlayerItem")]
         public async Task<ActionResult> EquipPlayerItem([FromBody] EquipPlayerItemRequest request)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.InventorySlotId <= 0)
             {
                 return BadRequest("PlayerId and InventorySlotId must be greater than zero.");
@@ -156,6 +163,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UnequipPlayerItem")]
         public async Task<ActionResult> UnequipPlayerItem([FromBody] UnequipPlayerItemRequest request)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0 || request.EquipmentSlotId <= 0)
             {
                 return BadRequest("PlayerId and EquipmentSlotId must be greater than zero.");
@@ -191,6 +204,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UpdatePlayerEquipment")]
         public async Task<ActionResult> UpdatePlayerEquipment(int playerId, Playerequipment updatedEquipment)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }
+
             var playerEquipment = await _context.Playerequipments.FirstOrDefaultAsync(e =>
                 e.FkPlayeridPlayer == playerId && e.Slot == updatedEquipment.Slot);
 

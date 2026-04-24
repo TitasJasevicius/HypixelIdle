@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //dont forget to auth and authorize later
-    //[Authorize]
+    [Authorize]
     public class CollectionTierController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -20,8 +20,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetCollectionTiers")]
         [AllowAnonymous]
+        [Route("GetCollectionTiers")]      
         public async Task<ActionResult<List<Collectiontier>>> GetCollectionTiers()
         {
             var collectionTiers = await _context.Collectiontiers.ToListAsync();
@@ -35,8 +35,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetCollectionTier")]
         [AllowAnonymous]
+        [Route("GetCollectionTier")]
         public async Task<ActionResult<Collectiontier>> GetCollectionTier(int id)
         {
             var collectionTier = await _context.Collectiontiers.FindAsync(id);
@@ -53,6 +53,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddCollectionTier")]
         public async Task<ActionResult<Collectiontier>> AddCollectionTier(Collectiontier collectionTier)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Collectiontiers.Add(collectionTier);
             await _context.SaveChangesAsync();
 
@@ -60,8 +65,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetCollectionTierByCollection")]
         [AllowAnonymous]
+        [Route("GetCollectionTierByCollection")]
         public async Task<ActionResult<List<Collectiontier>>> GetCollectionTierByCollection(int collectionId)
         {
             var collectionTiers = await _context.Collectiontiers
@@ -77,8 +82,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetCollectionTierByItem")]
         [AllowAnonymous]
+        [Route("GetCollectionTierByItem")]
         public async Task<ActionResult<List<Collectiontier>>> GetCollectionTierByItem(int itemId)
         {
             var collectionTiers = await _context.Collectiontiers
@@ -97,6 +102,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UpdateCollectionTier")]
         public async Task<ActionResult> UpdateCollectionTier(int id, Collectiontier updatedCollectionTier)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             var collectionTier = await _context.Collectiontiers.FindAsync(id);
 
             if (collectionTier == null)

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { API_BASE } from '../config/api';
 import Purse from '../Components/Purse';
+import { getAuthHeaders } from '../Components/AuthHeaderHelper';
 import '../Styles/GlobalStyles.css';
 import '../Styles/BankStyles.css';
 
@@ -49,11 +50,17 @@ const Bank = () => {
 			const [bankResponse, purseResponse] = await Promise.all([
 				axios.get(API_BASE + '/Bank/GetBank', {
 					params: { playerId },
-					headers: { Accept: 'application/json' },
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
 				}),
 				axios.get(API_BASE + '/Purse/GetPurse', {
 					params: { playerId },
-					headers: { Accept: 'application/json' },
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
 				}),
 			]);
 
@@ -97,7 +104,10 @@ const Bank = () => {
 					amountBalance: -parsedAmount,
 					amountBits: 0,
 				},
-				headers: { Accept: 'application/json' },
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
 			});
 
 			await axios.put(API_BASE + '/Bank/UpdateBank', null, {
@@ -105,7 +115,10 @@ const Bank = () => {
 					playerId,
 					amountBalance: parsedAmount,
 				},
-				headers: { Accept: 'application/json' },
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
 			});
 
 			setAmountInput('');
@@ -141,7 +154,10 @@ const Bank = () => {
 					playerId,
 					amountBalance: -parsedAmount,
 				},
-				headers: { Accept: 'application/json' },
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
 			});
 
 			await axios.put(API_BASE + '/Purse/UpdatePurse', null, {
@@ -150,7 +166,10 @@ const Bank = () => {
 					amountBalance: parsedAmount,
 					amountBits: 0,
 				},
-				headers: { Accept: 'application/json' },
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
 			});
 
 			setAmountInput('');

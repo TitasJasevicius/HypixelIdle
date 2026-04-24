@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { API_BASE } from '../config/api';
+import { getAuthHeaders } from '../Components/AuthHeaderHelper';
 import ContractPointsShopItem from '../Components/ContractPointsShopItem';
 import '../Styles/ContractPointsShopStyles.css';
 
@@ -51,7 +52,10 @@ const ContractPointsShop = () => {
 		try {
 			const shopResponse = await axios.get(`${API_BASE}/ContractPointsShop/GetContractPointsShopItems`, {
 				params: { playerId },
-				headers: { Accept: 'application/json' },
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
 			});
 
 			const normalizedItems = Array.isArray(shopResponse.data)
@@ -99,12 +103,16 @@ const ContractPointsShop = () => {
 				shopItemId: item.shopItemId,
 				purchaseCount,
 			}, {
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					...getAuthHeaders(),
+				},
 			});
 
 			const grantedQuantity = Number(response.data?.grantedQuantity ?? response.data?.GrantedQuantity ?? 0);
 			const totalCost = Number(response.data?.totalCostContractPoints ?? response.data?.TotalCostContractPoints ?? 0);
-			setStatusMessage(`Purchased ${grantedQuantity} ${item.itemName} for ${totalCost} Contract Points.`);
+			const displayItemName = String(item.itemName ?? '').replaceAll('_', ' ');
+			setStatusMessage(`Purchased ${grantedQuantity} ${displayItemName} for ${totalCost} Contract Points.`);
 
 			window.dispatchEvent(new Event('contracts-updated'));
 			window.dispatchEvent(new Event('purse-updated'));

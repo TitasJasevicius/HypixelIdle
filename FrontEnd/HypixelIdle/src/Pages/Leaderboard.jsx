@@ -7,6 +7,7 @@ import '../Styles/LeaderboardStyles.css';
 const LEADERBOARD_MODES = [
 	{ key: 'level', label: 'Skyblock Level' },
 	{ key: 'collections', label: 'Collections' },
+	{ key: 'skills', label: 'Skills' },
 	{ key: 'coins', label: 'Coins' },
 ];
 
@@ -22,12 +23,18 @@ const normalizeEntry = (entry) => ({
 	skyblockLevel: toNumber(entry.skyblockLevel ?? entry.SkyblockLevel),
 	purseBalance: toNumber(entry.purseBalance ?? entry.PurseBalance),
 	totalCollected: toNumber(entry.totalCollected ?? entry.TotalCollected),
+	skillLevel: toNumber(entry.skillLevel ?? entry.SkillLevel),
 });
 
 const normalizeItem = (item) => ({
 	idItem: toNumber(item.idItem ?? item.IdItem, null),
 	name: (item.name ?? item.Name ?? 'Unknown').toString(),
 	fkCollectionidCollection: toNumber(item.fkCollectionidCollection ?? item.FkCollectionidCollection, null),
+});
+
+const normalizeSkill = (skill) => ({
+	idSkills: toNumber(skill.idSkills ?? skill.IdSkills, null),
+	name: (skill.name ?? skill.Name ?? 'Unknown').toString(),
 });
 
 const formatDisplayName = (value) => (value ?? '').toString().replace(/_/g, ' ').trim();
@@ -37,12 +44,15 @@ const numberFormatter = new Intl.NumberFormat('en-US');
 const Leaderboard = () => {
 	const [mode, setMode] = useState('level');
 	const [collectionItemId, setCollectionItemId] = useState('global');
+	const [skillFilterId, setSkillFilterId] = useState('global');
 	const [hideZeroValues, setHideZeroValues] = useState(false);
 	const [entries, setEntries] = useState([]);
 	const [items, setItems] = useState([]);
+	const [skills, setSkills] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState('');
 	const [itemsError, setItemsError] = useState('');
+	const [skillsError, setSkillsError] = useState('');
 
 	const collectionItems = useMemo(() => {
 		return items.filter((item) => item.fkCollectionidCollection != null);
@@ -56,6 +66,14 @@ const Leaderboard = () => {
 		return collectionItems.find((item) => String(item.idItem) === String(collectionItemId)) ?? null;
 	}, [collectionItemId, collectionItems]);
 
+	const selectedSkill = useMemo(() => {
+		if (skillFilterId === 'global') {
+			return null;
+		}
+
+		return skills.find((skill) => String(skill.idSkills) === String(skillFilterId)) ?? null;
+	}, [skillFilterId, skills]);
+
 	useEffect(() => {
 		const loadLeaderboard = async () => {
 			try {
@@ -68,6 +86,9 @@ const Leaderboard = () => {
 						take: 50,
 						itemId: mode === 'collections' && selectedCollectionItem
 							? selectedCollectionItem.idItem
+							: undefined,
+						skillId: mode === 'skills' && selectedSkill
+							? selectedSkill.idSkills
 							: undefined,
 					},
 					headers: {
@@ -90,7 +111,7 @@ const Leaderboard = () => {
 		};
 
 		loadLeaderboard();
-	}, [mode, selectedCollectionItem]);
+	}, [mode, selectedCollectionItem, selectedSkill]);
 
 	useEffect(() => {
 		const loadItems = async () => {
@@ -117,6 +138,31 @@ const Leaderboard = () => {
 		loadItems();
 	}, []);
 
+	useEffect(() => {
+		const loadSkills = async () => {
+			try {
+				setSkillsError('');
+				const response = await axios.get(API_BASE + '/Skills/GetSkills', {
+					headers: {
+						Accept: 'application/json',
+					},
+				});
+
+				const normalizedSkills = Array.isArray(response.data)
+					? response.data.map(normalizeSkill)
+					: [];
+
+				setSkills(normalizedSkills);
+			} catch (loadError) {
+				console.error('Failed to load skills:', loadError);
+				setSkills([]);
+				setSkillsError('Failed to load skills.');
+			}
+		};
+
+		loadSkills();
+	}, []);
+
 	const modeLabel = useMemo(() => {
 		return LEADERBOARD_MODES.find((entry) => entry.key === mode)?.label ?? 'Skyblock Level';
 	}, [mode]);
@@ -125,6 +171,8 @@ const Leaderboard = () => {
 		switch (mode) {
 			case 'collections':
 				return `${numberFormatter.format(entry.totalCollected)} Collected`;
+			case 'skills':
+				return `${numberFormatter.format(entry.skillLevel)} Skill Level`;
 			case 'coins':
 				return `${numberFormatter.format(Math.floor(entry.purseBalance))} Coins`;
 			default:
@@ -141,6 +189,8 @@ const Leaderboard = () => {
 			switch (mode) {
 				case 'collections':
 					return entry.totalCollected > 0;
+				case 'skills':
+					return entry.skillLevel > 0;
 				case 'coins':
 					return entry.purseBalance > 0;
 				default:
@@ -149,9 +199,17 @@ const Leaderboard = () => {
 		});
 	}, [entries, hideZeroValues, mode]);
 
-	const activeMetricLabel = mode === 'collections' && selectedCollectionItem
-		? `${formatDisplayName(selectedCollectionItem.name)} Collected`
-		: modeLabel;
+	const activeMetricLabel = useMemo(() => {
+		if (mode === 'collections' && selectedCollectionItem) {
+			return `${formatDisplayName(selectedCollectionItem.name)} Collected`;
+		}
+
+		if (mode === 'skills' && selectedSkill) {
+			return `${formatDisplayName(selectedSkill.name)} Level`;
+		}
+
+		return modeLabel;
+	}, [mode, modeLabel, selectedCollectionItem, selectedSkill]);
 
 	return (
 		<section className="leaderboard-page">
@@ -192,6 +250,24 @@ const Leaderboard = () => {
 					</div>
 				) : null}
 
+				{mode === 'skills' ? (
+					<div className="leaderboard-collection-filter">
+						<label htmlFor="skillFilterId">Skills view</label>
+						<select
+							id="skillFilterId"
+							value={skillFilterId}
+							onChange={(event) => setSkillFilterId(event.target.value)}
+						>
+							<option value="global">Global Skills</option>
+							{skills.map((skill) => (
+								<option key={skill.idSkills} value={skill.idSkills}>
+									{formatDisplayName(skill.name)}
+								</option>
+							))}
+						</select>
+					</div>
+				) : null}
+
 				<button
 					type="button"
 					className={`leaderboard-filter-button ${hideZeroValues ? 'active' : ''}`}
@@ -203,6 +279,10 @@ const Leaderboard = () => {
 
 			{mode === 'collections' && itemsError ? (
 				<div className="leaderboard-state error">{itemsError}</div>
+			) : null}
+
+			{mode === 'skills' && skillsError ? (
+				<div className="leaderboard-state error">{skillsError}</div>
 			) : null}
 
 			{isLoading ? (

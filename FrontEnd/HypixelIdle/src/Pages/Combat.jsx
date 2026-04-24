@@ -705,16 +705,26 @@ const Combat = () => {
 			const pending = pendingArrowConsumptionRef.current;
 			const pendingItemId = toNumberOrNull(pending.itemId);
 			const pendingQuantity = toNumberOrNull(pending.quantity) ?? 0;
-			if (!playerId || pendingItemId == null || pendingQuantity <= 0 || !navigator.sendBeacon) {
+			if (!playerId || pendingItemId == null || pendingQuantity <= 0) {
 				return;
 			}
 
-			const payload = JSON.stringify({
+			const payload = {
 				playerId,
 				itemId: pendingItemId,
 				quantity: pendingQuantity,
+			};
+
+			const authHeaders = getAuthHeaders();
+			fetch(API_BASE + '/Inventory/RemoveItemFromInventory', {
+				method: 'POST',
+				keepalive: true,
+				headers: {
+					'Content-Type': 'application/json',
+					...authHeaders,
+				},
+				body: JSON.stringify(payload),
 			});
-			navigator.sendBeacon(API_BASE + '/Inventory/RemoveItemFromInventory', new Blob([payload], { type: 'application/json' }));
 		};
 
 		window.addEventListener('beforeunload', flushOnUnload);
@@ -904,6 +914,7 @@ const Combat = () => {
 					...getAuthHeaders(),
 				},
 			});
+			window.dispatchEvent(new Event('purse-updated'));
 		}
 
 		await addLootToInventory(lootDrops);
@@ -926,6 +937,52 @@ const Combat = () => {
 			console.error('Failed to update contract progress:', contractError);
 		}
 	}, [addLootToInventory, grantCombatSkillXp, playerId]);
+
+	const applyDeathPenalty = useCallback(async () => {
+		if (!playerId) {
+			return 0;
+		}
+
+		try {
+			const purseResponse = await axios.get(API_BASE + '/Purse/GetPurse', {
+				params: { playerId },
+				validateStatus: (status) => status === 200 || status === 404,
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
+
+			if (purseResponse.status !== 200 || !purseResponse.data) {
+				return 0;
+			}
+
+			const currentBalance = Math.max(0, toNumberOrNull(purseResponse.data.balance ?? purseResponse.data.Balance) ?? 0);
+			const penaltyAmount = Math.floor(currentBalance * 0.2);
+			if (penaltyAmount <= 0) {
+				return 0;
+			}
+
+			await axios.put(API_BASE + '/Purse/UpdatePurse', null, {
+				params: {
+					playerId,
+					amountBalance: -penaltyAmount,
+					amountBits: 0,
+				},
+				headers: {
+					Accept: 'application/json',
+					...getAuthHeaders(),
+				},
+			});
+
+			window.dispatchEvent(new Event('purse-updated'));
+
+			return penaltyAmount;
+		} catch (penaltyError) {
+			console.error('Failed to apply combat death penalty:', penaltyError);
+			return null;
+		}
+	}, [playerId]);
 
 	const rollMobDrops = useCallback((mob) => {
 		if (!mob?.drops?.length) {
@@ -1070,12 +1127,16 @@ const Combat = () => {
 			await flushPendingArrowConsumption();
 			setInventoryRefreshTick((prev) => prev + 1);
 			setIsBattling(false);
-			setRewardMessage(`You were defeated by ${mob.name}.`);
-			pushLog(`Defeated by ${mob.name}.`);
+			const penaltyAmount = await applyDeathPenalty();
+			const penaltyText = penaltyAmount === null
+				? ' Coin penalty could not be saved.'
+				: (penaltyAmount > 0 ? ` Lost ${penaltyAmount} coins.` : '');
+			setRewardMessage(`You were defeated by ${mob.name}.${penaltyText}`);
+			pushLog(`Defeated by ${mob.name}.${penaltyAmount > 0 ? ` Lost ${penaltyAmount} coins.` : ''}`);
 		}
 
 		attackLockRef.current = false;
-	}, [bowDamageBonus, canUseRanged, consumeArrowForRangedShot, enemyDefense, finishBattle, flushPendingArrowConsumption, hasBowSelected, meleeWeaponDamageBonus, playerBaseDamage, playerCritDamage, playerDefense, playerStrength, pushLog]);
+	}, [applyDeathPenalty, bowDamageBonus, canUseRanged, consumeArrowForRangedShot, enemyDefense, finishBattle, flushPendingArrowConsumption, hasBowSelected, meleeWeaponDamageBonus, playerBaseDamage, playerCritDamage, playerDefense, playerStrength, pushLog]);
 
 	useEffect(() => {
 		if (!isBattling || battleMode === 'manual') {
@@ -1154,13 +1215,31 @@ const Combat = () => {
 	}, []);
 
 	const handleSelectMob = (mobId) => {
-		setSelectedMobId(mobId);
 		const nextSelectedMob = mobs.find((mob) => mob.idMob === mobId);
+		if (!nextSelectedMob) {
+			setIsMobSelectModalOpen(false);
+			return;
+		}
+
+		const isSwitchingMob = selectedMobId != null && selectedMobId !== mobId;
+		setSelectedMobId(mobId);
 		const locationKey = nextSelectedMob?.location?.trim() || 'Unknown';
 		setCollapsedLocationGroups((prev) => ({
 			...prev,
 			[locationKey]: false,
 		}));
+
+		if (isSwitchingMob) {
+			setPlayerHealth(playerMaxHealth);
+			setEnemyHealth(nextSelectedMob.baseHealth);
+			playerHealthRef.current = playerMaxHealth;
+			enemyHealthRef.current = nextSelectedMob.baseHealth;
+			setIsBattling(false);
+			setRewardMessage('');
+			setLootResults([]);
+			pushLog(`Switched target to ${nextSelectedMob.name}. Combat reset.`);
+		}
+
 		setIsMobSelectModalOpen(false);
 	};
 

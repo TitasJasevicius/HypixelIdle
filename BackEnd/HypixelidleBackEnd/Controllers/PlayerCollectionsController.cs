@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //dont forget to auth and authorize later
-    //[Authorize]
+    [Authorize]
     public class PlayerCollectionsController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -21,8 +21,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetPlayerCollections")]
         [AllowAnonymous]
+        [Route("GetPlayerCollections")]
         public async Task<ActionResult<List<Playercollection>>> GetPlayerCollections()
         {
             var playerCollections = await _context.Playercollections.ToListAsync();
@@ -36,8 +36,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetPlayerCollection")]
         [AllowAnonymous]
+        [Route("GetPlayerCollection")]
         public async Task<ActionResult<Playercollection>> GetPlayerCollection(int playerId, int collectionId)
         {
             var playerCollection = await _context.Playercollections
@@ -57,6 +57,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddPlayerCollection")]
         public async Task<ActionResult<Playercollection>> AddPlayerCollection(Playercollection playerCollection)
         {
+
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Playercollections.Add(playerCollection);
             await _context.SaveChangesAsync();
 
@@ -66,9 +72,14 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("AddOrUpdateCollectionProgress")]
-        [AllowAnonymous]
         public async Task<ActionResult<CollectionProgressResponse>> AddOrUpdateCollectionProgress([FromBody] CollectionProgressRequest request)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
+            }
+
             if (request.PlayerId <= 0)
             {
                 return BadRequest("PlayerId is required.");

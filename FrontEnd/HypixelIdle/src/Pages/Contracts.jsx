@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { API_BASE } from '../config/api';
+import { getAuthHeaders } from '../Components/AuthHeaderHelper';
 import Contract from '../Components/Contract';
 import '../Styles/ContractsStyles.css';
 
@@ -86,11 +87,17 @@ const Contracts = () => {
 		try {
 			const [availableResponse, activeResponse] = await Promise.all([
 				axios.get(`${API_BASE}/Contract/GetContractsWithRewards`, {
-					headers: { Accept: 'application/json' },
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
 				}),
 				axios.get(`${API_BASE}/PlayerContracts/GetPlayerContracts`, {
 					params: { playerId },
-					headers: { Accept: 'application/json' },
+					headers: {
+						Accept: 'application/json',
+						...getAuthHeaders(),
+					},
 				}),
 			]);
 
@@ -215,7 +222,10 @@ const Contracts = () => {
 				playerId,
 				contractId,
 			}, {
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					...getAuthHeaders(),
+				},
 			});
 
 			setStatusMessage('Contract accepted.');
@@ -242,7 +252,10 @@ const Contracts = () => {
 				playerId,
 				contractId,
 			}, {
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					...getAuthHeaders(),
+				},
 			});
 
 			const coins = Number(response.data?.totalCoinsAwarded ?? response.data?.TotalCoinsAwarded ?? 0);
@@ -278,7 +291,10 @@ const Contracts = () => {
 				playerId,
 				contractId,
 			}, {
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					...getAuthHeaders(),
+				},
 			});
 
 			const cancelCost = Number(response.data?.cancelCostContractPoints ?? response.data?.CancelCostContractPoints ?? 0);

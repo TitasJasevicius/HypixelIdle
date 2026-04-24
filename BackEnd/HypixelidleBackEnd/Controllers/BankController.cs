@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
-    //do later
-    //[Authorize]
+    [ApiController] 
+    [Authorize]
     public class BankController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -20,6 +20,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetBank")]
         public async Task<ActionResult<Bank>> GetBank(int playerId)
         {
@@ -43,8 +44,14 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("AddBank")]
+
         public async Task<ActionResult<Bank>> AddBank(Bank bank)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Banks.Add(bank);
             await _context.SaveChangesAsync();
 
@@ -55,6 +62,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UpdateBank")]
         public async Task<ActionResult> UpdateBank(int playerId, int amountBalance)
         {
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }
+
             var bank = await _context.Banks.FirstOrDefaultAsync(b => b.FkPlayeridPlayer == playerId);
 
             if (bank == null)
@@ -82,6 +94,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("InitializePlayerBank")]
         public async Task<ActionResult> InitializePlayerBank(int playerId)
         {
@@ -107,6 +120,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("DeleteBank")]
         public async Task<ActionResult> DeleteBank(int playerId)
         {
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }
+
             var bank = await _context.Banks.FirstOrDefaultAsync(b => b.FkPlayeridPlayer == playerId);
 
             if (bank == null)

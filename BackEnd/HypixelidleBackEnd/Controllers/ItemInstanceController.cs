@@ -2,6 +2,7 @@ using HypixelidleBackEnd.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using HypixelidleBackEnd.Authentication;
 
 
 namespace HypixelidleBackEnd.Controllers
@@ -18,7 +19,6 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        //update auth later
         [AllowAnonymous]
         [Route("GetItemInstances")]
         public async Task<ActionResult<List<Iteminstance>>> GetItemInstances()
@@ -34,11 +34,13 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
-        //update auth later
-        [AllowAnonymous]
         [Route("AddItemInstance")]
         public async Task<ActionResult<Iteminstance>> AddItemInstance(Iteminstance itemInstance)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
             _context.Iteminstances.Add(itemInstance);
             await _context.SaveChangesAsync();
 
@@ -47,11 +49,14 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpPost]
-        //update auth later
         [AllowAnonymous]
         [Route("AddItemInstanceToInventory")]
         public async Task<ActionResult> AddItemInstanceToInventory(int itemInstanceId, int inventorySlotId)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
             var itemInstance = await _context.Iteminstances.FindAsync(itemInstanceId);
             var inventorySlot = await _context.Playerinventoryslots.FindAsync(inventorySlotId);
 
@@ -82,10 +87,15 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpDelete]
-        [AllowAnonymous]
         [Route("RemoveItemInstanceFromInventory")]
         public async Task<ActionResult> RemoveItemInstanceFromInventory(int itemInstanceId, int playerId)
         {
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, playerId))
+            {
+                return Unauthorized();
+            }
+
             var itemInstance = await _context.Iteminstances
                 .Include(i => i.FkItemidItemNavigation)
                 .Include(i => i.FkPlayerInventorySlotsidPlayerInventorySlotsNavigation)

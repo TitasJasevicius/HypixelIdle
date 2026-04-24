@@ -56,6 +56,18 @@
 	background: linear-gradient(180deg, #2d4151 0%, #213340 100%);
 	color: #e9f1ff;
 	font-size: 0.95rem;
+	color-scheme: dark;
+}
+
+.leaderboard-collection-filter select:focus {
+	outline: none;
+	border-color: rgba(110, 194, 255, 0.85);
+	box-shadow: 0 0 0 2px rgba(110, 194, 255, 0.2);
+}
+
+.leaderboard-collection-filter select option {
+	background: #213340;
+	color: #e9f1ff;
 }
 
 .leaderboard-filter-button {

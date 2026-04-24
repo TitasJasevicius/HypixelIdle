@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //do later
-    //[Authorize]
+    [Authorize]
     public class MobController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -20,6 +20,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetMobs")]
         public async Task<ActionResult<List<Mob>>> GetMobs()
         {
@@ -34,6 +35,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetMob")]
         public async Task<ActionResult<Mob>> GetMob(int id)
         {
@@ -48,6 +50,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetMobInstances")]
         public async Task<ActionResult<List<Mobinstance>>> GetMobInstances()
         {
@@ -62,6 +65,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetMobInstance")]
         public async Task<ActionResult<Mobinstance>> GetMobInstance(int id)
         {
@@ -79,6 +83,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddMob")]
         public async Task<ActionResult<Mob>> AddMob(Mob mob)
         {
+
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Mobs.Add(mob);
             await _context.SaveChangesAsync();
 
@@ -89,6 +99,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddMobInstance")]
         public async Task<ActionResult<Mobinstance>> AddMobInstance(Mobinstance mobInstance)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Mobinstances.Add(mobInstance);
             await _context.SaveChangesAsync();
 
@@ -99,6 +114,10 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UpdateMobInstance")]
         public async Task<ActionResult> UpdateMobInstance(int mobInstanceId, Mobinstance updatedMobInstance)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
             var mobInstance = await _context.Mobinstances.FindAsync(mobInstanceId);
 
             if (mobInstance == null)
@@ -118,6 +137,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("UpdateMob")]
         public async Task<ActionResult> UpdateMob(int mobId, Mob updatedMob)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             var mob = await _context.Mobs.FindAsync(mobId);
 
             if (mob == null)
@@ -135,6 +159,11 @@ namespace HypixelidleBackEnd.Controllers
         [Route("DeleteMob")]
         public async Task<ActionResult> DeleteMob(int id)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             var mob = await _context.Mobs.FindAsync(id);
 
             if (mob == null)
@@ -152,6 +181,10 @@ namespace HypixelidleBackEnd.Controllers
         [Route("DeleteMobInstance")]
         public async Task<ActionResult> DeleteMobInstance(int id)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
             var mobInstance = await _context.Mobinstances.FindAsync(id);
 
             if (mobInstance == null)
@@ -166,6 +199,7 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("GetCombatMobs")]
         public async Task<ActionResult<List<CombatMobResponse>>> GetCombatMobs()
         {

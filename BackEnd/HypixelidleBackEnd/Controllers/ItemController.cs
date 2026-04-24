@@ -3,6 +3,7 @@ using HypixelidleBackEnd.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
@@ -19,8 +20,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetItems")]
         [AllowAnonymous]
+        [Route("GetItems")]
         public async Task<ActionResult<List<Item>>> GetItems()
         {
             var items = await _context.Items.ToListAsync();
@@ -35,8 +36,8 @@ namespace HypixelidleBackEnd.Controllers
 
 
         [HttpGet]
-        [Route("GetItem")]
         [AllowAnonymous]
+        [Route("GetItem")]
         public async Task<ActionResult<Item>> GetItem(string name)
         {
             var item = await _context.Items.FirstOrDefaultAsync(i => i.Name == name);
@@ -51,10 +52,13 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("AddItem")]
-        //update to authorized later
-        [AllowAnonymous]
+
         public async Task<ActionResult<Item>> AddItem(Item item)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
             _context.Items.Add(item);
             await _context.SaveChangesAsync();
 
@@ -86,10 +90,13 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpDelete]
         [Route("DeleteItem")]
-        //update to authorized later
-        [AllowAnonymous]
         public async Task<ActionResult<Item>> DeleteItem(string name)
         {
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             var item = await _context.Items.FirstOrDefaultAsync(i => i.Name == name);
 
             if (item == null)

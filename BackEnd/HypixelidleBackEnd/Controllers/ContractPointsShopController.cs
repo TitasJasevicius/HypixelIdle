@@ -2,13 +2,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
+using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //dont forget to auth and authorize later
-    //[Authorize]
+    [Authorize]
     public class ContractPointsShopController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -19,8 +20,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetContractPointsShopItems")]
         [AllowAnonymous]
+        [Route("GetContractPointsShopItems")]   
         public async Task<ActionResult<List<ShopItemResponse>>> GetContractPointsShopItems(int? playerId = null)
         {
             var shopItems = await _context.Contractpointsshops
@@ -68,8 +69,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetContractPointsShopItem")]
         [AllowAnonymous]
+        [Route("GetContractPointsShopItem")]
         public async Task<ActionResult<ShopItemResponse>> GetContractPointsShopItem(int id, int? playerId = null)
         {
             var shopItem = await _context.Contractpointsshops
@@ -116,8 +117,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetPlayerContractPoints")]
         [AllowAnonymous]
+        [Route("GetPlayerContractPoints")]    
         public async Task<ActionResult<PlayerContractPointsResponse>> GetPlayerContractPoints(int playerId)
         {
             if (playerId <= 0)
@@ -143,12 +144,16 @@ namespace HypixelidleBackEnd.Controllers
 
         [HttpPost]
         [Route("PurchaseContractPointsShopItem")]
-        [AllowAnonymous]
         public async Task<ActionResult<PurchaseShopItemResponse>> PurchaseContractPointsShopItem([FromBody] PurchaseShopItemRequest request)
         {
             if (request.PlayerId <= 0 || request.ShopItemId <= 0)
             {
                 return BadRequest("Valid playerId and shopItemId are required.");
+            }
+
+            if (!AuthorizationHelper.IsAuthorizedForPlayer(User, request.PlayerId))
+            {
+                return Unauthorized();
             }
 
             var purchaseCount = Math.Max(1, request.PurchaseCount);

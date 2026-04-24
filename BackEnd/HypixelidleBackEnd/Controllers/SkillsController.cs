@@ -3,6 +3,7 @@ using HypixelidleBackEnd.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
@@ -19,8 +20,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetSkills")]
         [AllowAnonymous]
+        [Route("GetSkills")]
         public async Task<ActionResult<List<Skill>>> GetSkills()
         {
             var skills = await _context.Skills.ToListAsync();
@@ -37,6 +38,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddSkill")]
         public async Task<ActionResult<Skill>> AddSkill(Skill skill)
         {
+
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Skills.Add(skill);
             await _context.SaveChangesAsync();
 

@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HypixelidleBackEnd.Models;
 using HypixelidleBackEnd.Services;
+using HypixelidleBackEnd.Authentication;
 
 namespace HypixelidleBackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //dont forget to auth and authorize later
-    //[Authorize]
+    [Authorize]
     public class RecipesController : ControllerBase
     {
         private readonly HypixelIdleContext _context;
@@ -20,8 +20,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetRecipes")]
         [AllowAnonymous]
+        [Route("GetRecipes")]
         public async Task<ActionResult<List<Recipe>>> GetRecipes()
         {
             var recipes = await _context.Recipes.ToListAsync();
@@ -35,8 +35,8 @@ namespace HypixelidleBackEnd.Controllers
         }
 
         [HttpGet]
-        [Route("GetRecipe")]
         [AllowAnonymous]
+        [Route("GetRecipe")]
         public async Task<ActionResult<Recipe>> GetRecipe(int id)
         {
             var recipe = await _context.Recipes.FindAsync(id);
@@ -53,6 +53,12 @@ namespace HypixelidleBackEnd.Controllers
         [Route("AddRecipe")]
         public async Task<ActionResult<Recipe>> AddRecipe(Recipe recipe)
         {
+
+            if (!AuthorizationHelper.IsAdmin(User))
+            {
+                return Unauthorized();
+            }
+
             _context.Recipes.Add(recipe);
             await _context.SaveChangesAsync();
 

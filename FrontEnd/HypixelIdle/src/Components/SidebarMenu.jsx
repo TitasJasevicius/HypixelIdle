@@ -59,7 +59,9 @@ const SidebarMenu = ({ title, menuItems }) => {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('accessTokenExpiresAtUtc');
         localStorage.removeItem('playerId');
+        localStorage.removeItem('username');
         sessionStorage.clear();
+        window.dispatchEvent(new Event('auth-changed'));
         navigate('/login', { replace: true });
     };
 
