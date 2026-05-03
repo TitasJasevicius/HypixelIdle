@@ -223,7 +223,7 @@
 }
 
 .equipment-slot {
-  min-height: 3.35rem;
+  height: 3.35rem;
   width: 100%;
   border: 1px solid rgba(174, 198, 217, 0.45);
   border-radius: 0.35rem;
@@ -251,8 +251,10 @@
 }
 
 .equipment-slot-image {
-  width: calc(100% - (var(--inventory-item-inset) * 2));
-  height: calc(100% - (var(--inventory-item-inset) * 2));
+  width: 16px;
+  height: 16px;
+  max-width: 16px;
+  max-height: 16px;
   object-fit: contain;
   image-rendering: pixelated;
   display: block;

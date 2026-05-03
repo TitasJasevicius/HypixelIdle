@@ -132,31 +132,64 @@ namespace HypixelidleBackEnd.Controllers
                 return Conflict("That equipment slot is already occupied. Unequip it first.");
             }
 
-            var removed = await TryRemoveItemFromInventoryAsync(request.PlayerId, item.IdItem, 1);
-            if (!removed)
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                return Conflict("Could not remove item from inventory.");
-            }
-
-            if (existingEquipment == null)
-            {
-                existingEquipment = new Playerequipment
+                try
                 {
-                    IdPlayerEquipment = await GetNextPlayerEquipmentIdAsync(),
-                    FkPlayeridPlayer = request.PlayerId,
-                    Slot = equipmentTypeId.Value,
-                    FkItemidItem = item.IdItem,
-                };
+                    
+                    var inventorySlots = await _context.Playerinventoryslots
+                        .Where(slot => slot.FkPlayeridPlayer == request.PlayerId && slot.FkItemidItem == item.IdItem)
+                        .OrderBy(slot => slot.SlotIndex)
+                        .ToListAsync();
 
-                _context.Playerequipments.Add(existingEquipment);
-            }
-            else
-            {
-                existingEquipment.FkItemidItem = item.IdItem;
-            }
+                    int remainingQuantity = 1;
+                    foreach (var slot in inventorySlots)
+                    {
+                        if (remainingQuantity <= 0)
+                            break;
 
-            await _context.SaveChangesAsync();
-            return Ok(existingEquipment);
+                        int toRemove = Math.Min(remainingQuantity, slot.Quantity);
+                        slot.Quantity -= toRemove;
+                        remainingQuantity -= toRemove;
+
+                        if (slot.Quantity <= 0)
+                            slot.FkItemidItem = null;
+                    }
+
+                    if (remainingQuantity > 0)
+                    {
+                        await transaction.RollbackAsync();
+                        return Conflict("Could not remove item from inventory.");
+                    }
+
+                    
+                    if (existingEquipment == null)
+                    {
+                        existingEquipment = new Playerequipment
+                        {
+                            IdPlayerEquipment = await GetNextPlayerEquipmentIdAsync(),
+                            FkPlayeridPlayer = request.PlayerId,
+                            Slot = equipmentTypeId.Value,
+                            FkItemidItem = item.IdItem,
+                        };
+
+                        _context.Playerequipments.Add(existingEquipment);
+                    }
+                    else
+                    {
+                        existingEquipment.FkItemidItem = item.IdItem;
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return NoContent();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, $"Failed to equip item: {ex.Message}");
+                }
+            }
         }
 
         [HttpPost]
